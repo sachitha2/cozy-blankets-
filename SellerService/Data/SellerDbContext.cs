@@ -16,6 +16,7 @@ public class SellerDbContext : DbContext
 
     public DbSet<CustomerOrder> CustomerOrders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
+    public DbSet<SellerInventory> SellerInventories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -45,6 +46,14 @@ public class SellerDbContext : DbContext
             entity.Property(e => e.Quantity).IsRequired();
             entity.Property(e => e.UnitPrice).HasColumnType("REAL");
             entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
+        });
+
+        // SellerInventory configuration (Seller's own stock - PDF: "Seller checks their own stock")
+        modelBuilder.Entity<SellerInventory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ModelName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.UnitCost).HasColumnType("REAL");
         });
     }
 }

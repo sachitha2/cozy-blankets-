@@ -5,23 +5,26 @@ using SellerService.Repositories;
 namespace SellerService.Services;
 
 /// <summary>
-/// Service implementation for Seller business logic
-/// Orchestrates customer order processing and distributor communication
+/// Service implementation for Seller business logic.
+/// PDF: "The Seller checks their own stock. If unavailable, they contact their assigned Distributor."
 /// </summary>
 public class SellerService : ISellerService
 {
     private readonly ICustomerOrderRepository _orderRepository;
+    private readonly ISellerInventoryRepository _sellerInventoryRepository;
     private readonly IDistributorServiceClient _distributorClient;
     private readonly ILogger<SellerService> _logger;
     private readonly string _sellerId;
 
     public SellerService(
         ICustomerOrderRepository orderRepository,
+        ISellerInventoryRepository sellerInventoryRepository,
         IDistributorServiceClient distributorClient,
         IConfiguration configuration,
         ILogger<SellerService> logger)
     {
         _orderRepository = orderRepository;
+        _sellerInventoryRepository = sellerInventoryRepository;
         _distributorClient = distributorClient;
         _logger = logger;
         _sellerId = configuration["Seller:Id"] ?? "Seller-001";
@@ -54,56 +57,91 @@ public class SellerService : ISellerService
             var itemStatuses = new List<OrderItemStatusDto>();
             decimal totalAmount = 0;
 
-            // Process each order item
+            // Process each order item (PDF: Seller checks own stock first, then Distributor)
             foreach (var itemRequest in request.Items)
             {
-                // Check availability with distributor
-                var availability = await _distributorClient.CheckAvailabilityAsync(itemRequest.BlanketId);
-                
                 var orderItem = new OrderItem
                 {
                     BlanketId = itemRequest.BlanketId,
-                    ModelName = availability?.ModelName ?? $"Model-{itemRequest.BlanketId}",
+                    ModelName = $"Model-{itemRequest.BlanketId}",
                     Quantity = itemRequest.Quantity,
-                    UnitPrice = 0, // Will be set based on distributor pricing
+                    UnitPrice = 0,
                     Status = "Pending"
                 };
 
-                if (availability != null && availability.IsAvailable && availability.AvailableQuantity >= itemRequest.Quantity)
+                // Step 1: Check Seller's own stock first (PDF: "The Seller checks their own stock")
+                var sellerStock = await _sellerInventoryRepository.GetByBlanketIdAsync(itemRequest.BlanketId);
+                if (sellerStock != null && sellerStock.AvailableQuantity >= itemRequest.Quantity)
                 {
-                    // Place order with distributor
-                    var distributorResponse = await _distributorClient.PlaceOrderAsync(
-                        _sellerId,
-                        itemRequest.BlanketId,
-                        itemRequest.Quantity,
-                        $"Customer order: {request.CustomerName}"
-                    );
+                    // Fulfill from seller's own inventory
+                    orderItem.ModelName = sellerStock.ModelName;
+                    orderItem.UnitPrice = 79.99m;
+                    orderItem.Status = "Fulfilled";
+                    sellerStock.Quantity -= itemRequest.Quantity;
+                    await _sellerInventoryRepository.UpdateAsync(sellerStock);
+                    var remainingAfter = sellerStock.AvailableQuantity - itemRequest.Quantity;
+                    itemStatuses.Add(new OrderItemStatusDto
+                    {
+                        BlanketId = itemRequest.BlanketId,
+                        ModelName = orderItem.ModelName,
+                        Quantity = itemRequest.Quantity,
+                        Status = "Fulfilled",
+                        Message = $"Fulfilled from seller stock. {remainingAfter} units remaining."
+                    });
+                }
+                else
+                {
+                    // Step 2: If unavailable, contact Distributor (PDF: "If unavailable, they contact their assigned Distributor")
+                    var availability = await _distributorClient.CheckAvailabilityAsync(itemRequest.BlanketId);
+                    orderItem.ModelName = availability?.ModelName ?? orderItem.ModelName;
 
-                    if (distributorResponse.Status == "Fulfilled")
+                    if (availability != null && availability.IsAvailable && availability.AvailableQuantity >= itemRequest.Quantity)
                     {
-                        orderItem.Status = "Fulfilled";
-                        orderItem.UnitPrice = 79.99m; // Example pricing
-                        itemStatuses.Add(new OrderItemStatusDto
+                        var distributorResponse = await _distributorClient.PlaceOrderAsync(
+                            _sellerId,
+                            itemRequest.BlanketId,
+                            itemRequest.Quantity,
+                            $"Customer order: {request.CustomerName}"
+                        );
+
+                        if (distributorResponse.Status == "Fulfilled")
                         {
-                            BlanketId = itemRequest.BlanketId,
-                            ModelName = orderItem.ModelName,
-                            Quantity = itemRequest.Quantity,
-                            Status = "Fulfilled",
-                            Message = distributorResponse.Message
-                        });
-                    }
-                    else if (distributorResponse.Status == "PendingManufacturer")
-                    {
-                        orderItem.Status = "Processing";
-                        orderItem.UnitPrice = 79.99m;
-                        itemStatuses.Add(new OrderItemStatusDto
+                            orderItem.Status = "Fulfilled";
+                            orderItem.UnitPrice = 79.99m;
+                            itemStatuses.Add(new OrderItemStatusDto
+                            {
+                                BlanketId = itemRequest.BlanketId,
+                                ModelName = orderItem.ModelName,
+                                Quantity = itemRequest.Quantity,
+                                Status = "Fulfilled",
+                                Message = distributorResponse.Message
+                            });
+                        }
+                        else if (distributorResponse.Status == "PendingManufacturer")
                         {
-                            BlanketId = itemRequest.BlanketId,
-                            ModelName = orderItem.ModelName,
-                            Quantity = itemRequest.Quantity,
-                            Status = "Processing",
-                            Message = $"Order placed. Estimated delivery: {distributorResponse.EstimatedDeliveryDays} days"
-                        });
+                            orderItem.Status = "Processing";
+                            orderItem.UnitPrice = 79.99m;
+                            itemStatuses.Add(new OrderItemStatusDto
+                            {
+                                BlanketId = itemRequest.BlanketId,
+                                ModelName = orderItem.ModelName,
+                                Quantity = itemRequest.Quantity,
+                                Status = "Processing",
+                                Message = $"Order placed. Estimated delivery: {distributorResponse.EstimatedDeliveryDays} days"
+                            });
+                        }
+                        else
+                        {
+                            orderItem.Status = "Unavailable";
+                            itemStatuses.Add(new OrderItemStatusDto
+                            {
+                                BlanketId = itemRequest.BlanketId,
+                                ModelName = orderItem.ModelName,
+                                Quantity = itemRequest.Quantity,
+                                Status = "Unavailable",
+                                Message = distributorResponse.Message
+                            });
+                        }
                     }
                     else
                     {
@@ -114,21 +152,9 @@ public class SellerService : ISellerService
                             ModelName = orderItem.ModelName,
                             Quantity = itemRequest.Quantity,
                             Status = "Unavailable",
-                            Message = distributorResponse.Message
+                            Message = availability?.Message ?? "Product not available"
                         });
                     }
-                }
-                else
-                {
-                    orderItem.Status = "Unavailable";
-                    itemStatuses.Add(new OrderItemStatusDto
-                    {
-                        BlanketId = itemRequest.BlanketId,
-                        ModelName = orderItem.ModelName,
-                        Quantity = itemRequest.Quantity,
-                        Status = "Unavailable",
-                        Message = availability?.Message ?? "Product not available"
-                    });
                 }
 
                 customerOrder.OrderItems.Add(orderItem);
@@ -176,12 +202,29 @@ public class SellerService : ISellerService
         }
     }
 
+    /// <summary>
+    /// PDF: "Seller checks their own stock. If unavailable, they contact their assigned Distributor."
+    /// </summary>
     public async Task<AvailabilityResponseDto> CheckAvailabilityAsync(int modelId)
     {
         try
         {
+            // Step 1: Check Seller's own stock first
+            var sellerStock = await _sellerInventoryRepository.GetByBlanketIdAsync(modelId);
+            if (sellerStock != null && sellerStock.AvailableQuantity > 0)
+            {
+                return new AvailabilityResponseDto
+                {
+                    BlanketId = modelId,
+                    ModelName = sellerStock.ModelName,
+                    IsAvailable = true,
+                    AvailableQuantity = sellerStock.AvailableQuantity,
+                    Message = $"{sellerStock.AvailableQuantity} units available in seller stock"
+                };
+            }
+
+            // Step 2: If unavailable, check with Distributor
             var availability = await _distributorClient.CheckAvailabilityAsync(modelId);
-            
             if (availability == null)
             {
                 return new AvailabilityResponseDto

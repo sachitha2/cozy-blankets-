@@ -54,7 +54,7 @@ public class CustomerOrderRepository : ICustomerOrderRepository
         try
         {
             order.OrderDate = DateTime.UtcNow;
-            order.Status = "Pending";
+            if (string.IsNullOrEmpty(order.Status)) order.Status = "Pending";
             await _context.CustomerOrders.AddAsync(order);
             await _context.SaveChangesAsync();
             _logger.LogInformation("Customer order added successfully with Id: {Id}", order.Id);

@@ -42,6 +42,7 @@ builder.Services.AddDbContext<SellerDbContext>(options =>
 
 // Register Repositories (Scoped - one per HTTP request)
 builder.Services.AddScoped<ICustomerOrderRepository, CustomerOrderRepository>();
+builder.Services.AddScoped<ISellerInventoryRepository, SellerInventoryRepository>();
 
 // Register Services (Scoped - one per HTTP request)
 builder.Services.AddScoped<ISellerService, SellerService.Services.SellerService>();
@@ -67,7 +68,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Ensure database is created
+// Ensure database is created and seed Seller's own stock (PDF: "Seller checks their own stock")
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -75,6 +76,15 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<SellerDbContext>();
         context.Database.EnsureCreated();
+        if (!context.SellerInventories.Any())
+        {
+            context.SellerInventories.AddRange(
+                new SellerService.Models.SellerInventory { BlanketId = 1, ModelName = "Cozy Classic", Quantity = 10, ReservedQuantity = 0, UnitCost = 35.00m },
+                new SellerService.Models.SellerInventory { BlanketId = 2, ModelName = "Winter Warmth", Quantity = 5, ReservedQuantity = 0, UnitCost = 45.00m }
+            );
+            context.SaveChanges();
+            Log.Information("Seller inventory seed data added");
+        }
         Log.Information("Database ensured/created successfully");
     }
     catch (Exception ex)

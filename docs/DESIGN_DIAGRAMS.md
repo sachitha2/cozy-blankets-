@@ -56,20 +56,25 @@ graph TB
 
 ## Service Communication Flow
 
+Per PDF: "Seller checks their own stock. If unavailable, they contact their assigned Distributor."
+
 ```mermaid
 graph LR
     Customer[Customer] -->|1. Place Order| Seller[SellerService]
-    Seller -->|2. Check Availability| Distributor[DistributorService]
-    Distributor -->|3. Check Inventory| Distributor
-    Distributor -->|4. If Unavailable<br/>Check Production| Manufacturer[ManufacturerService]
-    Manufacturer -->|5. Production Info| Distributor
-    Distributor -->|6. Availability Info| Seller
-    Seller -->|7. Order Confirmation| Customer
+    Seller -->|2. Check Own Stock| Seller
+    Seller -->|3. If Unavailable:<br/>Check Distributor| Distributor[DistributorService]
+    Distributor -->|4. Check Inventory| Distributor
+    Distributor -->|5. If Unavailable:<br/>Check Production| Manufacturer[ManufacturerService]
+    Manufacturer -->|6. Production/Lead Time| Distributor
+    Distributor -->|7. Availability Info| Seller
+    Seller -->|8. Order Confirmation| Customer
 ```
 
 ---
 
 ## Sequence Diagram - Order Processing
+
+PDF flow: Seller checks own stock first; if unavailable, contacts Distributor; Distributor checks stock, then Manufacturer if needed.
 
 ```mermaid
 sequenceDiagram
@@ -79,22 +84,28 @@ sequenceDiagram
     participant M as ManufacturerService
 
     C->>S: POST /api/customerorder
-    S->>D: GET /api/inventory/{blanketId}
+    S->>S: Check Seller's own stock first
     
-    alt Inventory Available
-        D-->>S: Inventory Available
-        S->>D: POST /api/order
-        D->>D: Update Inventory
-        D-->>S: Order Fulfilled
+    alt Seller has stock
+        S->>S: Fulfill from own inventory
         S->>S: Create Customer Order
-        S-->>C: Order Confirmed
-    else Inventory Unavailable
-        D->>M: GET /api/blankets/stock/{modelId}
-        M-->>D: Stock Info
-        D->>M: POST /api/blankets/produce
-        M-->>D: Production Capacity & Lead Time
-        D-->>S: Availability with Lead Time
-        S-->>C: Order Pending (with lead time)
+        S-->>C: Order Fulfilled (from seller stock)
+    else Seller stock unavailable
+        S->>D: GET /api/inventory (check availability)
+        D-->>S: Inventory Available or Not
+        
+        alt Distributor has stock
+            S->>D: POST /api/order
+            D->>D: Update Inventory
+            D-->>S: Order Fulfilled
+            S->>S: Create Customer Order
+            S-->>C: Order Confirmed
+        else Distributor stock unavailable
+            D->>M: GET /api/blankets/stock, POST /api/blankets/produce
+            M-->>D: Production Capacity & Lead Time
+            D-->>S: Availability with Lead Time
+            S-->>C: Order Pending (with lead time)
+        end
     end
 ```
 
