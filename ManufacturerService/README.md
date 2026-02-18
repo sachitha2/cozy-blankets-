@@ -106,7 +106,7 @@ Processes a production request and returns availability and lead time informatio
    ```
 
 4. **Access Swagger UI**
-   Navigate to `https://localhost:5001` or `http://localhost:5000` (check console output for actual port)
+   Navigate to `http://localhost:5001` (check console output for actual port)
 
 ## Database Schema
 

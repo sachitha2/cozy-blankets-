@@ -1,0 +1,182 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ClientAppDesktop.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
+        x:Class="ClientAppDesktop.Views.MainWindow"
+        Title="Cozy Comfort - Service-Oriented Architecture Client"
+        Width="1200" Height="800"
+        WindowStartupLocation="CenterScreen">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid RowDefinitions="Auto,*,Auto">
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#2C3E50" Padding="20">
+            <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="🏠 Cozy Comfort" FontSize="24" FontWeight="Bold" Foreground="White" VerticalAlignment="Center"/>
+                <TextBlock Text="Service-Oriented Architecture Client" FontSize="16" Foreground="#BDC3C7" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content -->
+        <Grid Grid.Row="1" ColumnDefinitions="250,*" Margin="10">
+            <!-- Left Sidebar -->
+            <Border Grid.Column="0" Background="#ECF0F1" BorderBrush="#BDC3C7" BorderThickness="0,0,1,0" Padding="15">
+                <StackPanel Spacing="15">
+                    <TextBlock Text="Actions" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/>
+                    
+                    <Button Content="✓ Check Services" Command="{Binding CheckServicesCommand}" 
+                            Classes="primary" HorizontalAlignment="Stretch" Height="40"/>
+                    
+                    <Separator Margin="0,10"/>
+                    
+                    <TextBlock Text="Manufacturer Service" FontSize="14" FontWeight="SemiBold" Margin="0,5"/>
+                    <Button Content="📋 View Blankets" Command="{Binding LoadBlanketsCommand}" 
+                            HorizontalAlignment="Stretch" Height="35" Margin="0,5"/>
+                    <Button Content="📦 Check Stock" Command="{Binding CheckStockCommand}" 
+                            HorizontalAlignment="Stretch" Height="35" Margin="0,5"/>
+                    
+                    <Separator Margin="0,10"/>
+                    
+                    <TextBlock Text="Distributor Service" FontSize="14" FontWeight="SemiBold" Margin="0,5"/>
+                    <Button Content="📊 View Inventory" Command="{Binding LoadInventoryCommand}" 
+                            HorizontalAlignment="Stretch" Height="35" Margin="0,5"/>
+                    
+                    <Separator Margin="0,10"/>
+                    
+                    <TextBlock Text="Seller Service" FontSize="14" FontWeight="SemiBold" Margin="0,5"/>
+                    <Button Content="🔍 Check Availability" Command="{Binding CheckAvailabilityCommand}" 
+                            HorizontalAlignment="Stretch" Height="35" Margin="0,5"/>
+                    <Button Content="🛒 Place Order" Command="{Binding PlaceOrderCommand}" 
+                            Classes="accent" HorizontalAlignment="Stretch" Height="35" Margin="0,5"/>
+                    
+                    <Separator Margin="0,10"/>
+                    
+                    <Button Content="🎬 Complete Demo" Command="{Binding CompleteDemoCommand}" 
+                            Classes="success" HorizontalAlignment="Stretch" Height="40"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Right Content Area -->
+            <Grid Grid.Column="1" Margin="15,0,0,0">
+                <Grid.RowDefinitions>
+                    Auto
+                    Auto
+                    *
+                    Auto
+                </Grid.RowDefinitions>
+
+                <!-- Status Bar -->
+                <Border Grid.Row="0" Background="#34495E" Padding="15" Margin="0,0,0,10">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" Foreground="White" 
+                                   VerticalAlignment="Center" FontSize="14"/>
+                        <ProgressBar Grid.Column="1" IsIndeterminate="{Binding IsLoading}" 
+                                     Width="200" Height="6" VerticalAlignment="Center"/>
+                    </Grid>
+                </Border>
+
+                <!-- Order Form -->
+                <Border Grid.Row="1" Background="#F8F9FA" BorderBrush="#DEE2E6" BorderThickness="1" 
+                        Padding="15" Margin="0,0,0,10">
+                    <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="10" RowSpacing="10">
+                        <TextBlock Grid.Row="0" Grid.ColumnSpan="3" Text="Place Customer Order" 
+                                   FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/>
+                        
+                        <StackPanel Grid.Row="1" Grid.Column="0" Spacing="5">
+                            <TextBlock Text="Customer Name" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding CustomerName}" Watermark="Enter name"/>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Row="1" Grid.Column="1" Spacing="5">
+                            <TextBlock Text="Email" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding CustomerEmail}" Watermark="email@example.com"/>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Row="1" Grid.Column="2" Spacing="5">
+                            <TextBlock Text="Shipping Address" FontWeight="SemiBold"/>
+                            <TextBox Text="{Binding ShippingAddress}" Watermark="123 Main St"/>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Row="2" Grid.Column="0" Spacing="5">
+                            <TextBlock Text="Blanket Model ID" FontWeight="SemiBold"/>
+                            <NumericUpDown Value="{Binding SelectedBlanketId}" Minimum="1" Maximum="10"/>
+                        </StackPanel>
+                        
+                        <StackPanel Grid.Row="2" Grid.Column="1" Spacing="5">
+                            <TextBlock Text="Quantity" FontWeight="SemiBold"/>
+                            <NumericUpDown Value="{Binding OrderQuantity}" Minimum="1" Maximum="100"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Data Tabs -->
+                <TabControl Grid.Row="2" Margin="0,0,0,10">
+                    <TabItem Header="Blankets">
+                        <DataGrid ItemsSource="{Binding Blankets}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="All">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                                <DataGridTextColumn Header="Model Name" Binding="{Binding ModelName}" Width="*"/>
+                                <DataGridTextColumn Header="Material" Binding="{Binding Material}" Width="150"/>
+                                <DataGridTextColumn Header="Price" Binding="{Binding UnitPrice, StringFormat='${0:F2}'}" Width="100"/>
+                                <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </TabItem>
+                    
+                    <TabItem Header="Inventory">
+                        <DataGrid ItemsSource="{Binding Inventory}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="All">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="60"/>
+                                <DataGridTextColumn Header="Blanket ID" Binding="{Binding BlanketId}" Width="100"/>
+                                <DataGridTextColumn Header="Model Name" Binding="{Binding ModelName}" Width="*"/>
+                                <DataGridTextColumn Header="Quantity" Binding="{Binding Quantity}" Width="100"/>
+                                <DataGridTextColumn Header="Available" Binding="{Binding AvailableQuantity}" Width="100"/>
+                                <DataGridTextColumn Header="Unit Cost" Binding="{Binding UnitCost, StringFormat='${0:F2}'}" Width="100"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </TabItem>
+                    
+                    <TabItem Header="Orders">
+                        <DataGrid ItemsSource="{Binding Orders}" AutoGenerateColumns="False" IsReadOnly="True" GridLinesVisibility="All">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="Order ID" Binding="{Binding OrderId}" Width="100"/>
+                                <DataGridTextColumn Header="Customer" Binding="{Binding CustomerName}" Width="*"/>
+                                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="150"/>
+                                <DataGridTextColumn Header="Total" Binding="{Binding TotalAmount, StringFormat='${0:F2}'}" Width="100"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </TabItem>
+                </TabControl>
+            </Grid>
+        </Grid>
+
+        <!-- Footer -->
+        <Border Grid.Row="2" Background="#34495E" Padding="10">
+            <TextBlock Text="Service URLs: Manufacturer (5001) | Distributor (5002) | Seller (5003)" 
+                       Foreground="#BDC3C7" HorizontalAlignment="Center" FontSize="12"/>
+        </Border>
+    </Grid>
+
+    <Window.Styles>
+        <Style Selector="Button.primary">
+            <Setter Property="Background" Value="#3498DB"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.accent">
+            <Setter Property="Background" Value="#E74C3C"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        <Style Selector="Button.success">
+            <Setter Property="Background" Value="#27AE60"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+    </Window.Styles>
+</Window>
