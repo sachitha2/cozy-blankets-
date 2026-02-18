@@ -67,6 +67,22 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Ensure database is created
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<SellerDbContext>();
+        context.Database.EnsureCreated();
+        Log.Information("Database ensured/created successfully");
+    }
+    catch (Exception ex)
+    {
+        Log.Error(ex, "An error occurred while creating the database");
+    }
+}
+
 // Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
