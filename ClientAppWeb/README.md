@@ -1,19 +1,17 @@
 # Cozy Comfort Web Client Application
 
 ## Overview
-Web-based client application built with ASP.NET Core MVC that provides a beautiful, modern UI for consuming all three Cozy Comfort services. This runs in a web browser and provides a desktop-like experience.
+Customer-facing website where **customers can view the store and place orders**, aligned with the assessment PDF: *"Seller: The point of contact for the end customer. They display blankets for sale (online or in physical stores), take customer orders."*
+
+Built with ASP.NET Core MVC. The site loads the blanket catalog on first view and lets customers place orders through the Seller (SellerService).
 
 ## Features
+- ✅ **Customer storefront**: Browse blankets, check availability, place orders (PDF-aligned)
+- ✅ Catalog loaded on page load so customers can view products immediately
+- ✅ Place order form with blanket dropdown (by product name and price)
+- ✅ My orders tab to view placed orders
+- ✅ Admin/Demo section: service status, manufacturer stock, distributor inventory
 - ✅ Modern, responsive web UI
-- ✅ Real-time service status checking
-- ✅ View all blanket models from ManufacturerService
-- ✅ Check stock levels
-- ✅ View distributor inventory
-- ✅ Check product availability
-- ✅ Place customer orders
-- ✅ Complete order flow demonstration
-- ✅ Tabbed interface for organized data display
-- ✅ Beautiful gradient design
 
 ## Prerequisites
 - .NET 7.0 SDK or higher
@@ -40,23 +38,22 @@ The application will start on **http://localhost:5006**
 
 Open your browser and navigate to: **http://localhost:5006**
 
-## UI Features
+## UI Features (customer-first)
 
 ### Layout
-- **Header**: Title and branding with gradient background
-- **Status Bar**: Shows current operation status and service statuses
-- **Left Sidebar**: Action buttons organized by service
-- **Order Form**: Quick order placement form
-- **Tabbed Content**: Four tabs showing Blankets, Inventory, Stock Info, and Availability
+- **Header**: “Cozy Comfort Blankets” – shop and place your order
+- **Status bar**: Message and (when used) service status
+- **Sidebar – Shop**: Browse blankets, Check availability, My orders
+- **Sidebar – Admin / Demo**: Check services, Manufacturer stock, Distributor inventory
+- **Order form**: Your name, Email, Phone (optional), Shipping address, Blanket (dropdown from catalog), Quantity, Place order
+- **Tabs**: Our blankets | Availability | My orders | Inventory | Stock
 
-### Available Actions
-1. **Check Services** - Verifies all three services are running
-2. **View Blankets** - Loads and displays all blanket models
-3. **Check Stock** - Checks stock for blanket model ID 1
-4. **View Inventory** - Shows distributor inventory
-5. **Check Availability** - Checks product availability through SellerService
-6. **Place Order** - Places a customer order via form
-7. **Complete Demo** - Runs a complete order flow demonstration
+### Customer flow (PDF-aligned)
+1. **View the website** – Open the app; catalog loads so customers see blankets for sale.
+2. **Browse blankets** – “Our blankets” tab shows product list (or use **Browse blankets** in sidebar).
+3. **Check availability** – Optional; use **Check availability** for a product.
+4. **Place order** – Fill the form, choose a blanket from the dropdown, submit. Order is sent to SellerService (seller takes customer orders).
+5. **My orders** – View order history and status.
 
 ## Architecture
 - **MVC Pattern** - Model-View-Controller architecture

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Json;
 using ClientAppWeb.Models;
@@ -16,9 +17,35 @@ public class HomeController : Controller
         _httpClientFactory = httpClientFactory;
     }
 
-    public IActionResult Index()
+    /// <summary>
+    /// Customer-facing storefront. PDF: "Seller displays blankets for sale (online or in physical stores), take customer orders."
+    /// Load catalog on first view so customers can view the website and place orders.
+    /// </summary>
+    public async Task<IActionResult> Index()
     {
-        return View(new HomeViewModel());
+        var viewModel = new HomeViewModel();
+        try
+        {
+            var httpClient = _httpClientFactory.CreateClient();
+            var response = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await response.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+                viewModel.StatusMessage = viewModel.Blankets.Count > 0
+                    ? "Browse our blankets below and place your order."
+                    : "Welcome. Catalog loading.";
+            }
+            else
+            {
+                viewModel.StatusMessage = "Welcome to Cozy Comfort. Ensure services are running to browse.";
+            }
+        }
+        catch
+        {
+            viewModel.StatusMessage = "Welcome. Start services to browse and order.";
+        }
+
+        return View(viewModel);
     }
 
     [HttpPost]
@@ -163,6 +190,7 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> PlaceOrder(OrderRequestModel request)
     {
         var httpClient = _httpClientFactory.CreateClient();
@@ -186,31 +214,50 @@ public class HomeController : Controller
             if (response.IsSuccessStatusCode)
             {
                 viewModel.OrderResponse = await response.Content.ReadFromJsonAsync<OrderResponseModel>();
-                viewModel.StatusMessage = $"Order {viewModel.OrderResponse?.OrderId} placed successfully!";
-                
-                // Automatically load orders after placing
+                viewModel.StatusMessage = $"Order #{viewModel.OrderResponse?.OrderId} placed successfully!";
+                viewModel.ActiveTab = "orders";
+
+                // Keep catalog and load orders so customer can continue shopping or see their order
+                var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+                if (blanketsResponse.IsSuccessStatusCode)
+                    viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
                 var ordersResponse = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder");
                 if (ordersResponse.IsSuccessStatusCode)
-                {
                     viewModel.CustomerOrders = await ordersResponse.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
-                    viewModel.ActiveTab = "orders";
-                }
             }
             else
             {
                 var error = await response.Content.ReadAsStringAsync();
-                viewModel.StatusMessage = $"Error: {response.StatusCode} - {error}";
+                viewModel.StatusMessage = $"Order could not be placed: {response.StatusCode}";
             }
+
+            // Keep catalog so customer can try again
+            try
+            {
+                var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+                if (blanketsResponse.IsSuccessStatusCode)
+                    viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+            catch { /* ignore */ }
         }
         catch (Exception ex)
         {
             viewModel.StatusMessage = $"Error: {ex.Message}";
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                var blanketsResponse = await client.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+                if (blanketsResponse.IsSuccessStatusCode)
+                    viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+            catch { /* ignore */ }
         }
 
         return View("Index", viewModel);
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> LoadCustomerOrders()
     {
         var httpClient = _httpClientFactory.CreateClient();

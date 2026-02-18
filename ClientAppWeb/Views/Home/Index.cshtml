@@ -1,6 +1,6 @@
 @model ClientAppWeb.Models.HomeViewModel
 @{
-    ViewData["Title"] = "Cozy Comfort - Service-Oriented Architecture Client";
+    ViewData["Title"] = "Cozy Comfort Blankets - Shop & Place Order";
 }
 
 <!DOCTYPE html>
@@ -32,6 +32,10 @@
         }
         .header h1 { font-size: 32px; margin-bottom: 10px; }
         .header p { opacity: 0.9; font-size: 16px; }
+        .auth-bar { margin-top: 12px; font-size: 14px; }
+        .auth-bar .auth-link { color: white; text-decoration: underline; margin: 0 6px; }
+        .auth-bar .btn-logout { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 8px; }
+        .auth-bar .btn-logout:hover { background: rgba(255,255,255,0.3); }
         .status-bar {
             background: #34495e;
             color: white;
@@ -115,6 +119,7 @@
             color: #2c3e50;
             font-size: 14px;
         }
+        .tab-intro { margin-bottom: 15px; color: #555; }
         .form-group input, .form-group select {
             padding: 10px;
             border: 1px solid #dee2e6;
@@ -199,77 +204,107 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🏠 Cozy Comfort</h1>
-            <p>Service-Oriented Architecture Client Application</p>
+            <h1>Cozy Comfort Blankets</h1>
+            <p>Shop high-quality blankets. Place your order and we’ll fulfill from our stock or through our partners.</p>
+            <div class="auth-bar">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <span>Hello, @User.Identity.Name (@(User.Claims.FirstOrDefault(c => c.Type == System.Security.Claims.ClaimTypes.Role)?.Value ?? "User"))</span>
+                    <form method="post" asp-action="Logout" asp-controller="Account" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-logout">Logout</button>
+                    </form>
+                }
+                else
+                {
+                    <a href="@Url.Action("Login", "Account")" class="auth-link">Login</a>
+                    <span style="color: rgba(255,255,255,0.7);">|</span>
+                    <a href="@Url.Action("Register", "Account")" class="auth-link">Register</a>
+                }
+            </div>
         </div>
         
         <div class="status-bar">
             <div class="status">@Model.StatusMessage</div>
-            <div class="services">
-                @foreach (var status in Model.ServiceStatuses)
-                {
-                    <div class="service">@status.Key: @status.Value</div>
-                }
-            </div>
+            @if (Model.ServiceStatuses.Any())
+            {
+                <div class="services">
+                    @foreach (var status in Model.ServiceStatuses)
+                    {
+                        <div class="service">@status.Key: @status.Value</div>
+                    }
+                </div>
+            }
         </div>
 
         <div class="content">
             <div class="sidebar">
-                <h3>Actions</h3>
-                <form method="post" asp-action="CheckServices">
-                    <button type="submit" class="btn btn-primary">✓ Check Services</button>
+                <h3>Shop</h3>
+                <form method="post" asp-action="LoadBlankets">
+                    <button type="submit" class="btn btn-primary">Browse blankets</button>
+                </form>
+                <form method="post" asp-action="CheckAvailability">
+                    <input type="hidden" name="blanketId" value="@(Model.Blankets.FirstOrDefault()?.Id ?? 1)" />
+                    <button type="submit" class="btn btn-default">Check availability</button>
+                </form>
+                <form method="post" asp-action="LoadCustomerOrders">
+                    <button type="submit" class="btn btn-default">My orders</button>
                 </form>
                 
                 <div class="separator"></div>
-                
-                <h3>Manufacturer</h3>
-                <form method="post" asp-action="LoadBlankets">
-                    <button type="submit" class="btn btn-default">📋 View Blankets</button>
+                <h3>Admin / Demo</h3>
+                <form method="post" asp-action="CheckServices">
+                    <button type="submit" class="btn btn-default">Check services</button>
                 </form>
                 <form method="post" asp-action="CheckStock">
                     <input type="hidden" name="blanketId" value="1" />
-                    <button type="submit" class="btn btn-default">📦 Check Stock</button>
+                    <button type="submit" class="btn btn-default">Manufacturer stock</button>
                 </form>
-                
-                <div class="separator"></div>
-                
-                <h3>Distributor</h3>
                 <form method="post" asp-action="LoadInventory">
-                    <button type="submit" class="btn btn-default">📊 View Inventory</button>
-                </form>
-                
-                <div class="separator"></div>
-                
-                <h3>Seller</h3>
-                <form method="post" asp-action="CheckAvailability">
-                    <input type="hidden" name="blanketId" value="1" />
-                    <button type="submit" class="btn btn-default">🔍 Check Availability</button>
-                </form>
-                <form method="post" asp-action="LoadCustomerOrders">
-                    <button type="submit" class="btn btn-default">📋 View Orders</button>
+                    <button type="submit" class="btn btn-default">Distributor inventory</button>
                 </form>
             </div>
 
             <div class="main-content">
                 <div class="order-form">
-                    <h3>Place Customer Order</h3>
+                    <h3>Place your order</h3>
+                    @if (User.Identity?.IsAuthenticated != true)
+                    {
+                        <p class="alert alert-info" style="margin-bottom: 15px;">Please <a href="@Url.Action("Login", "Account")">log in</a> or <a href="@Url.Action("Register", "Account")">register</a> to place an order.</p>
+                    }
                     <form method="post" asp-action="PlaceOrder">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label>Customer Name</label>
-                                <input type="text" name="CustomerName" required placeholder="John Doe" />
+                                <label>Your name</label>
+                                <input type="text" name="CustomerName" required placeholder="e.g. John Doe" />
                             </div>
                             <div class="form-group">
                                 <label>Email</label>
                                 <input type="email" name="CustomerEmail" required placeholder="john@example.com" />
                             </div>
                             <div class="form-group">
-                                <label>Shipping Address</label>
-                                <input type="text" name="ShippingAddress" required placeholder="123 Main St" />
+                                <label>Phone</label>
+                                <input type="text" name="CustomerPhone" placeholder="optional" />
                             </div>
                             <div class="form-group">
-                                <label>Blanket Model ID</label>
-                                <input type="number" name="BlanketId" value="1" min="1" max="10" />
+                                <label>Shipping address</label>
+                                <input type="text" name="ShippingAddress" required placeholder="123 Main St, City" />
+                            </div>
+                            <div class="form-group">
+                                <label>Blanket</label>
+                                @if (Model.Blankets.Any())
+                                {
+                                    <select name="BlanketId" required>
+                                        @foreach (var b in Model.Blankets)
+                                        {
+                                            <option value="@b.Id">@b.ModelName – $@b.UnitPrice.ToString("F2")</option>
+                                        }
+                                    </select>
+                                }
+                                else
+                                {
+                                    <input type="number" name="BlanketId" value="1" min="1" max="10" placeholder="Model ID" />
+                                }
                             </div>
                             <div class="form-group">
                                 <label>Quantity</label>
@@ -277,7 +312,7 @@
                             </div>
                             <div class="form-group">
                                 <label>&nbsp;</label>
-                                <button type="submit" class="btn btn-danger" style="text-align: center;">🛒 Place Order</button>
+                                <button type="submit" class="btn btn-success" style="text-align: center;">Place order</button>
                             </div>
                         </div>
                     </form>
@@ -286,30 +321,28 @@
                 @if (Model.OrderResponse != null)
                 {
                     <div class="alert alert-success">
-                        <strong>Order Placed!</strong><br>
-                        Order ID: @Model.OrderResponse.OrderId<br>
-                        Status: @Model.OrderResponse.Status<br>
-                        Total: $@Model.OrderResponse.TotalAmount.ToString("F2")<br>
-                        Message: @Model.OrderResponse.Message
+                        <strong>Thank you — order placed</strong><br>
+                        Order #@Model.OrderResponse.OrderId · Status: @Model.OrderResponse.Status · Total: $@Model.OrderResponse.TotalAmount.ToString("F2")<br>
+                        @Model.OrderResponse.Message
                     </div>
                 }
 
                 <div class="tabs">
-                    <button class="tab @(Model.ActiveTab == "blankets" ? "active" : "")" onclick="showTab('blankets')">Blankets</button>
-                    <button class="tab @(Model.ActiveTab == "inventory" ? "active" : "")" onclick="showTab('inventory')">Inventory</button>
-                    <button class="tab @(Model.ActiveTab == "stock" ? "active" : "")" onclick="showTab('stock')">Stock Info</button>
+                    <button class="tab @(Model.ActiveTab == "blankets" ? "active" : "")" onclick="showTab('blankets')">Our blankets</button>
                     <button class="tab @(Model.ActiveTab == "availability" ? "active" : "")" onclick="showTab('availability')">Availability</button>
-                    <button class="tab @(Model.ActiveTab == "orders" ? "active" : "")" onclick="showTab('orders')">Customer Orders</button>
+                    <button class="tab @(Model.ActiveTab == "orders" ? "active" : "")" onclick="showTab('orders')">My orders</button>
+                    <button class="tab @(Model.ActiveTab == "inventory" ? "active" : "")" onclick="showTab('inventory')">Inventory</button>
+                    <button class="tab @(Model.ActiveTab == "stock" ? "active" : "")" onclick="showTab('stock')">Stock</button>
                 </div>
 
                 <div id="blankets" class="tab-content @(Model.ActiveTab == "blankets" ? "active" : "")">
                     @if (Model.Blankets.Any())
                     {
+                        <p class="tab-intro">Blankets we have for sale. Choose one in the order form above.</p>
                         <table>
                             <thead>
                                 <tr>
-                                    <th>ID</th>
-                                    <th>Model Name</th>
+                                    <th>Product</th>
                                     <th>Material</th>
                                     <th>Price</th>
                                     <th>Description</th>
@@ -319,7 +352,6 @@
                                 @foreach (var blanket in Model.Blankets)
                                 {
                                     <tr>
-                                        <td>@blanket.Id</td>
                                         <td><strong>@blanket.ModelName</strong></td>
                                         <td>@blanket.Material</td>
                                         <td>$@blanket.UnitPrice.ToString("F2")</td>
@@ -331,13 +363,88 @@
                     }
                     else
                     {
-                        <div class="alert alert-info">No blankets loaded. Click "View Blankets" to load data.</div>
+                        <div class="alert alert-info">Catalog will appear here when the store is connected. Use <strong>Browse blankets</strong> to load products.</div>
+                    }
+                </div>
+
+                <div id="availability" class="tab-content @(Model.ActiveTab == "availability" ? "active" : "")">
+                    @if (Model.AvailabilityInfo != null)
+                    {
+                        <div class="alert @(Model.AvailabilityInfo.IsAvailable ? "alert-success" : "alert-danger")">
+                            <h4>Availability for @Model.AvailabilityInfo.ModelName</h4>
+                            <p><strong>Available:</strong> @(Model.AvailabilityInfo.IsAvailable ? "Yes" : "No")</p>
+                            <p><strong>Available quantity:</strong> @Model.AvailabilityInfo.AvailableQuantity</p>
+                            <p>@Model.AvailabilityInfo.Message</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">Use <strong>Check availability</strong> in the sidebar to see if a product is in stock.</div>
+                    }
+                </div>
+
+                <div id="orders" class="tab-content @(Model.ActiveTab == "orders" ? "active" : "")">
+                    @if (Model.CustomerOrders.Any())
+                    {
+                        <p class="tab-intro">Your orders with us.</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Order #</th>
+                                    <th>Customer</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Items</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in Model.CustomerOrders)
+                                {
+                                    <tr>
+                                        <td><strong>#@order.Id</strong></td>
+                                        <td>@order.CustomerName</td>
+                                        <td>
+                                            <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
+                                                @if(order.Status == "Fulfilled") { <text>background: #d4edda; color: #155724;</text> }
+                                                else if(order.Status == "Processing") { <text>background: #d1ecf1; color: #0c5460;</text> }
+                                                else if(order.Status == "Cancelled") { <text>background: #f8d7da; color: #721c24;</text> }
+                                                else { <text>background: #fff3cd; color: #856404;</text> }">
+                                                @order.Status
+                                            </span>
+                                        </td>
+                                        <td>@order.OrderDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td><strong>$@order.TotalAmount.ToString("F2")</strong></td>
+                                        <td>@order.OrderItems.Count item(s)</td>
+                                    </tr>
+                                    @if (order.OrderItems.Any())
+                                    {
+                                        <tr style="background: #f8f9fa;">
+                                            <td colspan="6" style="padding: 10px 15px;">
+                                                <strong>Items:</strong>
+                                                @foreach (var item in order.OrderItems)
+                                                {
+                                                    <span style="margin-right: 15px;">
+                                                        @item.ModelName (Qty: @item.Quantity) – $@item.SubTotal.ToString("F2") [@item.Status]
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">No orders yet. Place an order using the form above, then open <strong>My orders</strong> to see it.</div>
                     }
                 </div>
 
                 <div id="inventory" class="tab-content @(Model.ActiveTab == "inventory" ? "active" : "")">
                     @if (Model.Inventory.Any())
                     {
+                        <p class="tab-intro">Admin: distributor inventory.</p>
                         <table>
                             <thead>
                                 <tr>
@@ -366,7 +473,7 @@
                     }
                     else
                     {
-                        <div class="alert alert-info">No inventory loaded. Click "View Inventory" to load data.</div>
+                        <div class="alert alert-info">Admin: use <strong>Distributor inventory</strong> in the sidebar to load data.</div>
                     }
                 </div>
 
@@ -382,82 +489,7 @@
                     }
                     else
                     {
-                        <div class="alert alert-info">No stock information loaded. Click "Check Stock" to load data.</div>
-                    }
-                </div>
-
-                <div id="availability" class="tab-content @(Model.ActiveTab == "availability" ? "active" : "")">
-                    @if (Model.AvailabilityInfo != null)
-                    {
-                        <div class="alert @(Model.AvailabilityInfo.IsAvailable ? "alert-success" : "alert-danger")">
-                            <h4>Availability for @Model.AvailabilityInfo.ModelName</h4>
-                            <p><strong>Available:</strong> @(Model.AvailabilityInfo.IsAvailable ? "Yes" : "No")</p>
-                            <p><strong>Available Quantity:</strong> @Model.AvailabilityInfo.AvailableQuantity</p>
-                            <p><strong>Message:</strong> @Model.AvailabilityInfo.Message</p>
-                        </div>
-                    }
-                    else
-                    {
-                        <div class="alert alert-info">No availability information loaded. Click "Check Availability" to load data.</div>
-                    }
-                </div>
-
-                <div id="orders" class="tab-content @(Model.ActiveTab == "orders" ? "active" : "")">
-                    @if (Model.CustomerOrders.Any())
-                    {
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Customer Name</th>
-                                    <th>Email</th>
-                                    <th>Status</th>
-                                    <th>Order Date</th>
-                                    <th>Total Amount</th>
-                                    <th>Items</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var order in Model.CustomerOrders)
-                                {
-                                    <tr>
-                                        <td><strong>#@order.Id</strong></td>
-                                        <td>@order.CustomerName</td>
-                                        <td>@order.CustomerEmail</td>
-                                        <td>
-                                            <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
-                                                @if(order.Status == "Fulfilled") { <text>background: #d4edda; color: #155724;</text> }
-                                                else if(order.Status == "Processing") { <text>background: #d1ecf1; color: #0c5460;</text> }
-                                                else if(order.Status == "Cancelled") { <text>background: #f8d7da; color: #721c24;</text> }
-                                                else { <text>background: #fff3cd; color: #856404;</text> }">
-                                                @order.Status
-                                            </span>
-                                        </td>
-                                        <td>@order.OrderDate.ToString("yyyy-MM-dd HH:mm")</td>
-                                        <td><strong>$@order.TotalAmount.ToString("F2")</strong></td>
-                                        <td>@order.OrderItems.Count item(s)</td>
-                                    </tr>
-                                    @if (order.OrderItems.Any())
-                                    {
-                                        <tr style="background: #f8f9fa;">
-                                            <td colspan="7" style="padding: 10px 15px;">
-                                                <strong>Items:</strong>
-                                                @foreach (var item in order.OrderItems)
-                                                {
-                                                    <span style="margin-right: 15px;">
-                                                        @item.ModelName (Qty: @item.Quantity) - $@item.SubTotal.ToString("F2") [@item.Status]
-                                                    </span>
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
-                                }
-                            </tbody>
-                        </table>
-                    }
-                    else
-                    {
-                        <div class="alert alert-info">No customer orders loaded. Click "View Orders" to load data.</div>
+                        <div class="alert alert-info">Admin: use <strong>Manufacturer stock</strong> in the sidebar to load data.</div>
                     }
                 </div>
             </div>
@@ -481,8 +513,9 @@
             tabs.forEach(tab => {
                 tab.addEventListener('click', function() {
                     let tabName = this.textContent.toLowerCase().replace(/\s+/g, '');
-                    // Map tab names to IDs
-                    if (tabName === 'stockinfo') tabName = 'stock';
+                    if (tabName === 'ourblankets') tabName = 'blankets';
+                    else if (tabName === 'myorders') tabName = 'orders';
+                    else if (tabName === 'stockinfo') tabName = 'stock';
                     else if (tabName === 'customerorders') tabName = 'orders';
                     showTab(tabName);
                 });
