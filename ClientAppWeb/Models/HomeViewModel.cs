@@ -11,6 +11,7 @@ public class HomeViewModel
     public OrderResponseModel? OrderResponse { get; set; }
     public List<CustomerOrderModel> CustomerOrders { get; set; } = new();
     public CustomerOrderModel? SelectedOrder { get; set; }
+    public string ActiveTab { get; set; } = "blankets";
 }
 
 public class BlanketModel

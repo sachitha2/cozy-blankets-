@@ -63,6 +63,7 @@ public class HomeController : Controller
             {
                 viewModel.Blankets = await response.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
                 viewModel.StatusMessage = $"Loaded {viewModel.Blankets.Count} blanket models";
+                viewModel.ActiveTab = "blankets";
             }
             else
             {
@@ -90,6 +91,7 @@ public class HomeController : Controller
             {
                 viewModel.StockInfo = await response.Content.ReadFromJsonAsync<StockModel>();
                 viewModel.StatusMessage = $"Stock checked for model {blanketId}";
+                viewModel.ActiveTab = "stock";
             }
             else
             {
@@ -117,6 +119,7 @@ public class HomeController : Controller
             {
                 viewModel.Inventory = await response.Content.ReadFromJsonAsync<List<InventoryModel>>() ?? new();
                 viewModel.StatusMessage = $"Loaded {viewModel.Inventory.Count} inventory items";
+                viewModel.ActiveTab = "inventory";
             }
             else
             {
@@ -144,6 +147,7 @@ public class HomeController : Controller
             {
                 viewModel.AvailabilityInfo = await response.Content.ReadFromJsonAsync<AvailabilityModel>();
                 viewModel.StatusMessage = $"Availability checked for model {blanketId}";
+                viewModel.ActiveTab = "availability";
             }
             else
             {
@@ -189,6 +193,7 @@ public class HomeController : Controller
                 if (ordersResponse.IsSuccessStatusCode)
                 {
                     viewModel.CustomerOrders = await ordersResponse.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
+                    viewModel.ActiveTab = "orders";
                 }
             }
             else
@@ -200,68 +205,6 @@ public class HomeController : Controller
         catch (Exception ex)
         {
             viewModel.StatusMessage = $"Error: {ex.Message}";
-        }
-
-        return View("Index", viewModel);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> CompleteDemo()
-    {
-        var httpClient = _httpClientFactory.CreateClient();
-        var viewModel = new HomeViewModel();
-
-        try
-        {
-            // Step 1: Load blankets
-            var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
-            if (blanketsResponse.IsSuccessStatusCode)
-            {
-                viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
-            }
-
-            // Step 2: Check stock
-            var stockResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets/stock/1");
-            if (stockResponse.IsSuccessStatusCode)
-            {
-                viewModel.StockInfo = await stockResponse.Content.ReadFromJsonAsync<StockModel>();
-            }
-
-            // Step 3: Load inventory
-            var inventoryResponse = await httpClient.GetAsync($"{DistributorServiceUrl}/api/inventory");
-            if (inventoryResponse.IsSuccessStatusCode)
-            {
-                viewModel.Inventory = await inventoryResponse.Content.ReadFromJsonAsync<List<InventoryModel>>() ?? new();
-            }
-
-            // Step 4: Check availability
-            var availabilityResponse = await httpClient.GetAsync($"{SellerServiceUrl}/api/availability/1");
-            if (availabilityResponse.IsSuccessStatusCode)
-            {
-                viewModel.AvailabilityInfo = await availabilityResponse.Content.ReadFromJsonAsync<AvailabilityModel>();
-            }
-
-            // Step 5: Place sample order
-            var order = new
-            {
-                customerName = "Demo Customer",
-                customerEmail = "demo@example.com",
-                customerPhone = "555-1234",
-                shippingAddress = "123 Demo Street",
-                items = new[] { new { blanketId = 1, quantity = 2 } }
-            };
-
-            var orderResponse = await httpClient.PostAsJsonAsync($"{SellerServiceUrl}/api/customerorder", order);
-            if (orderResponse.IsSuccessStatusCode)
-            {
-                viewModel.OrderResponse = await orderResponse.Content.ReadFromJsonAsync<OrderResponseModel>();
-            }
-
-            viewModel.StatusMessage = "Complete demo executed successfully!";
-        }
-        catch (Exception ex)
-        {
-            viewModel.StatusMessage = $"Demo error: {ex.Message}";
         }
 
         return View("Index", viewModel);
@@ -280,6 +223,7 @@ public class HomeController : Controller
             {
                 viewModel.CustomerOrders = await response.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
                 viewModel.StatusMessage = $"Loaded {viewModel.CustomerOrders.Count} customer orders";
+                viewModel.ActiveTab = "orders";
             }
             else
             {
