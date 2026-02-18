@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SellerService", "SellerServ
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientApp", "ClientApp\ClientApp.csproj", "{D4E5F6A7-B8C9-0123-DEF0-123456789013}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientAppDesktop", "ClientAppDesktop\ClientAppDesktop.csproj", "{E5F6A7B8-C9D0-1234-EF01-234567890124}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClientAppWeb", "ClientAppWeb\ClientAppWeb.csproj", "{E5F6A7B8-C9D0-1234-EF01-234567890124}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

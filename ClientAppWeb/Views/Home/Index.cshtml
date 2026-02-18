@@ -1,0 +1,433 @@
+@model ClientAppWeb.Models.HomeViewModel
+@{
+    ViewData["Title"] = "Cozy Comfort - Service-Oriented Architecture Client";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 16px; }
+        .status-bar {
+            background: #34495e;
+            color: white;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .status-bar .status { font-weight: 600; }
+        .status-bar .services {
+            display: flex;
+            gap: 20px;
+            font-size: 14px;
+        }
+        .status-bar .service { padding: 5px 15px; background: rgba(255,255,255,0.2); border-radius: 20px; }
+        .content {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 600px;
+        }
+        .sidebar {
+            background: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            padding: 20px;
+        }
+        .sidebar h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .btn {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 10px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-align: left;
+        }
+        .btn-primary { background: #3498db; color: white; }
+        .btn-primary:hover { background: #2980b9; transform: translateX(5px); }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #229954; transform: translateX(5px); }
+        .btn-danger { background: #e74c3c; color: white; }
+        .btn-danger:hover { background: #c0392b; transform: translateX(5px); }
+        .btn-default { background: #95a5a6; color: white; }
+        .btn-default:hover { background: #7f8c8d; transform: translateX(5px); }
+        .main-content {
+            padding: 30px;
+        }
+        .order-form {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 2px solid #dee2e6;
+        }
+        .order-form h3 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        .form-group input, .form-group select {
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #dee2e6;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            color: #6c757d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        .tab:hover { color: #3498db; }
+        .tab.active {
+            color: #3498db;
+            border-bottom-color: #3498db;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        th {
+            background: #34495e;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+        tr:hover { background: #f8f9fa; }
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .separator {
+            height: 1px;
+            background: #dee2e6;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏠 Cozy Comfort</h1>
+            <p>Service-Oriented Architecture Client Application</p>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status">@Model.StatusMessage</div>
+            <div class="services">
+                @foreach (var status in Model.ServiceStatuses)
+                {
+                    <div class="service">@status.Key: @status.Value</div>
+                }
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="sidebar">
+                <h3>Actions</h3>
+                <form method="post" asp-action="CheckServices">
+                    <button type="submit" class="btn btn-primary">✓ Check Services</button>
+                </form>
+                
+                <div class="separator"></div>
+                
+                <h3>Manufacturer</h3>
+                <form method="post" asp-action="LoadBlankets">
+                    <button type="submit" class="btn btn-default">📋 View Blankets</button>
+                </form>
+                <form method="post" asp-action="CheckStock">
+                    <input type="hidden" name="blanketId" value="1" />
+                    <button type="submit" class="btn btn-default">📦 Check Stock</button>
+                </form>
+                
+                <div class="separator"></div>
+                
+                <h3>Distributor</h3>
+                <form method="post" asp-action="LoadInventory">
+                    <button type="submit" class="btn btn-default">📊 View Inventory</button>
+                </form>
+                
+                <div class="separator"></div>
+                
+                <h3>Seller</h3>
+                <form method="post" asp-action="CheckAvailability">
+                    <input type="hidden" name="blanketId" value="1" />
+                    <button type="submit" class="btn btn-default">🔍 Check Availability</button>
+                </form>
+                
+                <div class="separator"></div>
+                
+                <form method="post" asp-action="CompleteDemo">
+                    <button type="submit" class="btn btn-success">🎬 Complete Demo</button>
+                </form>
+            </div>
+
+            <div class="main-content">
+                <div class="order-form">
+                    <h3>Place Customer Order</h3>
+                    <form method="post" asp-action="PlaceOrder">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Customer Name</label>
+                                <input type="text" name="CustomerName" required placeholder="John Doe" />
+                            </div>
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" name="CustomerEmail" required placeholder="john@example.com" />
+                            </div>
+                            <div class="form-group">
+                                <label>Shipping Address</label>
+                                <input type="text" name="ShippingAddress" required placeholder="123 Main St" />
+                            </div>
+                            <div class="form-group">
+                                <label>Blanket Model ID</label>
+                                <input type="number" name="BlanketId" value="1" min="1" max="10" />
+                            </div>
+                            <div class="form-group">
+                                <label>Quantity</label>
+                                <input type="number" name="Quantity" value="1" min="1" max="100" />
+                            </div>
+                            <div class="form-group">
+                                <label>&nbsp;</label>
+                                <button type="submit" class="btn btn-danger" style="text-align: center;">🛒 Place Order</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+
+                @if (Model.OrderResponse != null)
+                {
+                    <div class="alert alert-success">
+                        <strong>Order Placed!</strong><br>
+                        Order ID: @Model.OrderResponse.OrderId<br>
+                        Status: @Model.OrderResponse.Status<br>
+                        Total: $@Model.OrderResponse.TotalAmount.ToString("F2")<br>
+                        Message: @Model.OrderResponse.Message
+                    </div>
+                }
+
+                <div class="tabs">
+                    <button class="tab active" onclick="showTab('blankets')">Blankets</button>
+                    <button class="tab" onclick="showTab('inventory')">Inventory</button>
+                    <button class="tab" onclick="showTab('stock')">Stock Info</button>
+                    <button class="tab" onclick="showTab('availability')">Availability</button>
+                </div>
+
+                <div id="blankets" class="tab-content active">
+                    @if (Model.Blankets.Any())
+                    {
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Model Name</th>
+                                    <th>Material</th>
+                                    <th>Price</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var blanket in Model.Blankets)
+                                {
+                                    <tr>
+                                        <td>@blanket.Id</td>
+                                        <td><strong>@blanket.ModelName</strong></td>
+                                        <td>@blanket.Material</td>
+                                        <td>$@blanket.UnitPrice.ToString("F2")</td>
+                                        <td>@blanket.Description</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">No blankets loaded. Click "View Blankets" to load data.</div>
+                    }
+                </div>
+
+                <div id="inventory" class="tab-content">
+                    @if (Model.Inventory.Any())
+                    {
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Blanket ID</th>
+                                    <th>Model Name</th>
+                                    <th>Quantity</th>
+                                    <th>Available</th>
+                                    <th>Unit Cost</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Inventory)
+                                {
+                                    <tr>
+                                        <td>@item.Id</td>
+                                        <td>@item.BlanketId</td>
+                                        <td><strong>@item.ModelName</strong></td>
+                                        <td>@item.Quantity</td>
+                                        <td>@item.AvailableQuantity</td>
+                                        <td>$@item.UnitCost.ToString("F2")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">No inventory loaded. Click "View Inventory" to load data.</div>
+                    }
+                </div>
+
+                <div id="stock" class="tab-content">
+                    @if (Model.StockInfo != null)
+                    {
+                        <div class="alert alert-info">
+                            <h4>Stock Information for @Model.StockInfo.ModelName</h4>
+                            <p><strong>Total Quantity:</strong> @Model.StockInfo.Quantity</p>
+                            <p><strong>Reserved:</strong> @Model.StockInfo.ReservedQuantity</p>
+                            <p><strong>Available:</strong> @Model.StockInfo.AvailableQuantity</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">No stock information loaded. Click "Check Stock" to load data.</div>
+                    }
+                </div>
+
+                <div id="availability" class="tab-content">
+                    @if (Model.AvailabilityInfo != null)
+                    {
+                        <div class="alert @(Model.AvailabilityInfo.IsAvailable ? "alert-success" : "alert-danger")">
+                            <h4>Availability for @Model.AvailabilityInfo.ModelName</h4>
+                            <p><strong>Available:</strong> @(Model.AvailabilityInfo.IsAvailable ? "Yes" : "No")</p>
+                            <p><strong>Available Quantity:</strong> @Model.AvailabilityInfo.AvailableQuantity</p>
+                            <p><strong>Message:</strong> @Model.AvailabilityInfo.Message</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">No availability information loaded. Click "Check Availability" to load data.</div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+        }
+        
+        // Initialize tabs on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    const tabName = this.textContent.toLowerCase().replace(/\s+/g, '');
+                    showTab(tabName === 'stockinfo' ? 'stock' : tabName === 'availability' ? 'availability' : tabName);
+                });
+            });
+        });
+    </script>
+</body>
+</html>
