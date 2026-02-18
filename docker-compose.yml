@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  manufacturer-service:
+    build:
+      context: .
+      dockerfile: ManufacturerService/Dockerfile
+    container_name: manufacturer-service
+    ports:
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5001
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/ManufacturerServiceDb.db
+    volumes:
+      - manufacturer-data:/app/data
+    networks:
+      - cozy-comfort-network
+    restart: unless-stopped
+
+  distributor-service:
+    build:
+      context: .
+      dockerfile: DistributorService/Dockerfile
+    container_name: distributor-service
+    ports:
+      - "5002:5002"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5002
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/DistributorServiceDb.db
+      - ManufacturerService__BaseUrl=http://manufacturer-service:5001
+    volumes:
+      - distributor-data:/app/data
+    networks:
+      - cozy-comfort-network
+    depends_on:
+      - manufacturer-service
+    restart: unless-stopped
+
+  seller-service:
+    build:
+      context: .
+      dockerfile: SellerService/Dockerfile
+    container_name: seller-service
+    ports:
+      - "5003:5003"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5003
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/SellerServiceDb.db
+      - DistributorService__BaseUrl=http://distributor-service:5002
+    volumes:
+      - seller-data:/app/data
+    networks:
+      - cozy-comfort-network
+    depends_on:
+      - distributor-service
+    restart: unless-stopped
+
+  client-app-web:
+    build:
+      context: .
+      dockerfile: ClientAppWeb/Dockerfile
+    container_name: client-app-web
+    ports:
+      - "5006:5006"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5006
+    networks:
+      - cozy-comfort-network
+    depends_on:
+      - seller-service
+    restart: unless-stopped
+
+volumes:
+  manufacturer-data:
+  distributor-data:
+  seller-data:
+
+networks:
+  cozy-comfort-network:
+    driver: bridge

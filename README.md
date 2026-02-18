@@ -3,6 +3,15 @@
 ## Overview
 Cozy Comfort is a Service-Oriented Computing (SOC) based system for blanket supply chain management. It replaces manual phone/email ordering processes with service-based API communication.
 
+## 📚 Documentation
+
+Comprehensive documentation is available in the [`docs/`](./docs/) directory:
+
+- **[Design Diagrams](./docs/DESIGN_DIAGRAMS.md)** - Architecture, sequence, class, and ER diagrams
+- **[Architecture Comparison](./docs/ARCHITECTURE_COMPARISON.md)** - Monolithic vs SOA analysis (Task 1)
+- **[Testing Documentation](./docs/TESTING_DOCUMENTATION.md)** - Test cases, debugging process, results (Task 3)
+- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Docker, Kubernetes, cloud deployment (Task 4)
+
 ## System Architecture
 
 The system consists of three independent ASP.NET Core Web API services:
@@ -37,29 +46,38 @@ Customer → SellerService → DistributorService → ManufacturerService
 
 ```
 cozy_comfort/
-├── ManufacturerService/     # Port 5001
+├── ManufacturerService/           # Port 5001
 │   ├── Controllers/
 │   ├── Services/
 │   ├── Repositories/
 │   ├── Models/
 │   ├── DTOs/
 │   └── Data/
-├── DistributorService/      # Port 5002
+├── DistributorService/            # Port 5002
 │   ├── Controllers/
 │   ├── Services/
 │   ├── Repositories/
 │   ├── Models/
 │   ├── DTOs/
 │   └── Data/
-├── SellerService/           # Port 5003
+├── SellerService/                  # Port 5003
 │   ├── Controllers/
 │   ├── Services/
 │   ├── Repositories/
 │   ├── Models/
 │   ├── DTOs/
 │   └── Data/
-└── ClientApp/               # Console Client Application
-    └── Program.cs
+├── ClientApp/                      # Console Client Application
+├── ClientAppWeb/                   # Web Client Application (Port 5006)
+├── ManufacturerService.Tests/      # Unit tests for ManufacturerService
+├── DistributorService.Tests/        # Unit tests for DistributorService
+├── SellerService.Tests/             # Unit tests for SellerService
+├── CozyComfort.IntegrationTests/   # Integration tests
+└── docs/                           # Documentation
+    ├── DESIGN_DIAGRAMS.md
+    ├── ARCHITECTURE_COMPARISON.md
+    ├── TESTING_DOCUMENTATION.md
+    └── DEPLOYMENT.md
 ```
 
 ## Prerequisites
@@ -662,11 +680,26 @@ All services automatically seed example data on startup:
 - CORS is enabled for inter-service communication
 - All services follow the same architectural patterns
 
+## Testing
+
+The project includes comprehensive test suites:
+
+- **Unit Tests**: Test projects for each service (xUnit, Moq, FluentAssertions)
+- **Integration Tests**: End-to-end service communication tests
+- **Test Coverage**: ~67% overall coverage
+
+Run tests:
+```bash
+dotnet test
+```
+
+See [Testing Documentation](./docs/TESTING_DOCUMENTATION.md) for detailed test cases and results.
+
 ## Next Steps
 
 - Add authentication/authorization
 - Implement API versioning
-- Add comprehensive unit tests
+- Increase test coverage to 80%+
 - Implement retry policies for inter-service calls
 - Add health check endpoints
 - Implement distributed tracing
