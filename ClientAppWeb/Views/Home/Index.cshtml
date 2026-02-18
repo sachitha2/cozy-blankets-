@@ -245,6 +245,9 @@
                     <input type="hidden" name="blanketId" value="1" />
                     <button type="submit" class="btn btn-default">🔍 Check Availability</button>
                 </form>
+                <form method="post" asp-action="LoadCustomerOrders">
+                    <button type="submit" class="btn btn-default">📋 View Orders</button>
+                </form>
                 
                 <div class="separator"></div>
                 
@@ -302,6 +305,7 @@
                     <button class="tab" onclick="showTab('inventory')">Inventory</button>
                     <button class="tab" onclick="showTab('stock')">Stock Info</button>
                     <button class="tab" onclick="showTab('availability')">Availability</button>
+                    <button class="tab" onclick="showTab('orders')">Customer Orders</button>
                 </div>
 
                 <div id="blankets" class="tab-content active">
@@ -403,6 +407,65 @@
                         <div class="alert alert-info">No availability information loaded. Click "Check Availability" to load data.</div>
                     }
                 </div>
+
+                <div id="orders" class="tab-content">
+                    @if (Model.CustomerOrders.Any())
+                    {
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer Name</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Order Date</th>
+                                    <th>Total Amount</th>
+                                    <th>Items</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var order in Model.CustomerOrders)
+                                {
+                                    <tr>
+                                        <td><strong>#@order.Id</strong></td>
+                                        <td>@order.CustomerName</td>
+                                        <td>@order.CustomerEmail</td>
+                                        <td>
+                                            <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
+                                                @if(order.Status == "Fulfilled") { <text>background: #d4edda; color: #155724;</text> }
+                                                else if(order.Status == "Processing") { <text>background: #d1ecf1; color: #0c5460;</text> }
+                                                else if(order.Status == "Cancelled") { <text>background: #f8d7da; color: #721c24;</text> }
+                                                else { <text>background: #fff3cd; color: #856404;</text> }">
+                                                @order.Status
+                                            </span>
+                                        </td>
+                                        <td>@order.OrderDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                        <td><strong>$@order.TotalAmount.ToString("F2")</strong></td>
+                                        <td>@order.OrderItems.Count item(s)</td>
+                                    </tr>
+                                    @if (order.OrderItems.Any())
+                                    {
+                                        <tr style="background: #f8f9fa;">
+                                            <td colspan="7" style="padding: 10px 15px;">
+                                                <strong>Items:</strong>
+                                                @foreach (var item in order.OrderItems)
+                                                {
+                                                    <span style="margin-right: 15px;">
+                                                        @item.ModelName (Qty: @item.Quantity) - $@item.SubTotal.ToString("F2") [@item.Status]
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">No customer orders loaded. Click "View Orders" to load data.</div>
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -423,8 +486,11 @@
             const tabs = document.querySelectorAll('.tab');
             tabs.forEach(tab => {
                 tab.addEventListener('click', function() {
-                    const tabName = this.textContent.toLowerCase().replace(/\s+/g, '');
-                    showTab(tabName === 'stockinfo' ? 'stock' : tabName === 'availability' ? 'availability' : tabName);
+                    let tabName = this.textContent.toLowerCase().replace(/\s+/g, '');
+                    // Map tab names to IDs
+                    if (tabName === 'stockinfo') tabName = 'stock';
+                    else if (tabName === 'customerorders') tabName = 'orders';
+                    showTab(tabName);
                 });
             });
         });

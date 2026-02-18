@@ -207,4 +207,58 @@ public class SellerService : ISellerService
             };
         }
     }
+
+    public async Task<IEnumerable<DTOs.CustomerOrderDto>> GetAllCustomerOrdersAsync()
+    {
+        try
+        {
+            var orders = await _orderRepository.GetAllAsync();
+            return orders.Select(MapToDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving all customer orders");
+            throw;
+        }
+    }
+
+    public async Task<DTOs.CustomerOrderDto?> GetCustomerOrderByIdAsync(int id)
+    {
+        try
+        {
+            var order = await _orderRepository.GetByIdAsync(id);
+            return order != null ? MapToDto(order) : null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving customer order with Id: {Id}", id);
+            throw;
+        }
+    }
+
+    private static DTOs.CustomerOrderDto MapToDto(Models.CustomerOrder order)
+    {
+        return new DTOs.CustomerOrderDto
+        {
+            Id = order.Id,
+            CustomerName = order.CustomerName,
+            CustomerEmail = order.CustomerEmail,
+            CustomerPhone = order.CustomerPhone,
+            ShippingAddress = order.ShippingAddress,
+            Status = order.Status,
+            OrderDate = order.OrderDate,
+            FulfilledDate = order.FulfilledDate,
+            TotalAmount = order.TotalAmount,
+            OrderItems = order.OrderItems.Select(item => new DTOs.OrderItemDto
+            {
+                Id = item.Id,
+                BlanketId = item.BlanketId,
+                ModelName = item.ModelName,
+                Quantity = item.Quantity,
+                UnitPrice = item.UnitPrice,
+                SubTotal = item.SubTotal,
+                Status = item.Status
+            }).ToList()
+        };
+    }
 }

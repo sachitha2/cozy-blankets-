@@ -71,4 +71,63 @@ public class CustomerOrderController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while processing the customer order" });
         }
     }
+
+    /// <summary>
+    /// Get all customer orders
+    /// </summary>
+    /// <returns>List of all customer orders</returns>
+    /// <response code="200">Returns the list of customer orders</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet]
+    [ProducesResponseType(typeof(IEnumerable<CustomerOrderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<CustomerOrderDto>>> GetAllOrders()
+    {
+        try
+        {
+            var orders = await _sellerService.GetAllCustomerOrdersAsync();
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving customer orders");
+            return StatusCode(500, new { error = "An error occurred while retrieving customer orders" });
+        }
+    }
+
+    /// <summary>
+    /// Get a specific customer order by ID
+    /// </summary>
+    /// <param name="id">The order ID</param>
+    /// <returns>Customer order details</returns>
+    /// <response code="200">Returns the customer order</response>
+    /// <response code="404">Order not found</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(CustomerOrderDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<CustomerOrderDto>> GetOrderById(int id)
+    {
+        try
+        {
+            if (id <= 0)
+            {
+                return BadRequest(new { error = "Invalid order ID" });
+            }
+
+            var order = await _sellerService.GetCustomerOrderByIdAsync(id);
+            if (order == null)
+            {
+                return NotFound(new { error = $"Order with ID {id} not found" });
+            }
+
+            return Ok(order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving customer order with Id: {Id}", id);
+            return StatusCode(500, new { error = "An error occurred while retrieving the customer order" });
+        }
+    }
 }

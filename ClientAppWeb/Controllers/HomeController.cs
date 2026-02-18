@@ -183,6 +183,13 @@ public class HomeController : Controller
             {
                 viewModel.OrderResponse = await response.Content.ReadFromJsonAsync<OrderResponseModel>();
                 viewModel.StatusMessage = $"Order {viewModel.OrderResponse?.OrderId} placed successfully!";
+                
+                // Automatically load orders after placing
+                var ordersResponse = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder");
+                if (ordersResponse.IsSuccessStatusCode)
+                {
+                    viewModel.CustomerOrders = await ordersResponse.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
+                }
             }
             else
             {
@@ -255,6 +262,64 @@ public class HomeController : Controller
         catch (Exception ex)
         {
             viewModel.StatusMessage = $"Demo error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> LoadCustomerOrders()
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel();
+
+        try
+        {
+            var response = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.CustomerOrders = await response.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
+                viewModel.StatusMessage = $"Loaded {viewModel.CustomerOrders.Count} customer orders";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ViewOrder(int orderId)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel();
+
+        try
+        {
+            var response = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder/{orderId}");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.SelectedOrder = await response.Content.ReadFromJsonAsync<CustomerOrderModel>();
+                viewModel.StatusMessage = $"Loaded order {orderId} details";
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                viewModel.StatusMessage = $"Order {orderId} not found";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
         }
 
         return View("Index", viewModel);
