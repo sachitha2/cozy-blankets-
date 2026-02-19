@@ -119,6 +119,13 @@
             <h1>About Cozy Comfort Blankets</h1>
             <p>Your trusted source for premium quality blankets</p>
             <div class="auth-bar">
+                <div style="margin-bottom: 10px;">
+                    <a href="@Url.Action("Index", "Home")" class="auth-link">Home</a>
+                    <span style="color: rgba(255,255,255,0.7);">|</span>
+                    <a href="@Url.Action("About", "Home")" class="auth-link">About Us</a>
+                    <span style="color: rgba(255,255,255,0.7);">|</span>
+                    <a href="@Url.Action("Contact", "Home")" class="auth-link">Contact Us</a>
+                </div>
                 @if (User.Identity?.IsAuthenticated == true)
                 {
                     <span>Hello, @User.Identity.Name</span>
