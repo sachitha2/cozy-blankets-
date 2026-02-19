@@ -160,11 +160,11 @@ class Program
                 {
                     var stock = await response.Content.ReadFromJsonAsync<dynamic>();
                     Console.WriteLine("\n--- Stock Information ---");
-                    Console.WriteLine($"Model: {stock.ModelName}");
-                    Console.WriteLine($"Total Quantity: {stock.Quantity}");
-                    Console.WriteLine($"Reserved: {stock.ReservedQuantity}");
-                    Console.WriteLine($"Available: {stock.AvailableQuantity}");
-                    Console.WriteLine($"Last Updated: {stock.LastUpdated}");
+                    Console.WriteLine($"Model: {stock?.ModelName}");
+                    Console.WriteLine($"Total Quantity: {stock?.Quantity}");
+                    Console.WriteLine($"Reserved: {stock?.ReservedQuantity}");
+                    Console.WriteLine($"Available: {stock?.AvailableQuantity}");
+                    Console.WriteLine($"Last Updated: {stock?.LastUpdated}");
                 }
                 else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
                 {
@@ -231,11 +231,11 @@ class Program
                 {
                     var availability = await response.Content.ReadFromJsonAsync<dynamic>();
                     Console.WriteLine("\n--- Availability Information ---");
-                    Console.WriteLine($"Model: {availability.ModelName}");
-                    Console.WriteLine($"Available: {(availability.IsAvailable ? "Yes" : "No")}");
-                    Console.WriteLine($"Available Quantity: {availability.AvailableQuantity}");
-                    Console.WriteLine($"Message: {availability.Message}");
-                    if (availability.EstimatedDeliveryDays != null)
+                    Console.WriteLine($"Model: {availability?.ModelName}");
+                    Console.WriteLine($"Available: {(availability?.IsAvailable == true ? "Yes" : "No")}");
+                    Console.WriteLine($"Available Quantity: {availability?.AvailableQuantity}");
+                    Console.WriteLine($"Message: {availability?.Message}");
+                    if (availability?.EstimatedDeliveryDays != null)
                     {
                         Console.WriteLine($"Estimated Delivery: {availability.EstimatedDeliveryDays} days");
                     }
@@ -292,15 +292,16 @@ class Program
                     {
                         var orderResponse = await response.Content.ReadFromJsonAsync<dynamic>();
                         Console.WriteLine("\n--- Order Response ---");
-                        Console.WriteLine($"Order ID: {orderResponse.OrderId}");
-                        Console.WriteLine($"Status: {orderResponse.Status}");
-                        Console.WriteLine($"Message: {orderResponse.Message}");
-                        Console.WriteLine($"Total Amount: ${orderResponse.TotalAmount}");
+                        Console.WriteLine($"Order ID: {orderResponse?.OrderId}");
+                        Console.WriteLine($"Status: {orderResponse?.Status}");
+                        Console.WriteLine($"Message: {orderResponse?.Message}");
+                        Console.WriteLine($"Total Amount: ${orderResponse?.TotalAmount}");
                         Console.WriteLine("\nItem Status:");
-                        foreach (var item in orderResponse.Items)
-                        {
-                            Console.WriteLine($"  - {item.ModelName}: {item.Status} - {item.Message}");
-                        }
+                        if (orderResponse?.Items != null)
+                            foreach (var item in orderResponse.Items)
+                            {
+                                Console.WriteLine($"  - {item?.ModelName}: {item?.Status} - {item?.Message}");
+                            }
                     }
                     else
                     {
@@ -343,7 +344,7 @@ class Program
             if (stockResponse.IsSuccessStatusCode)
             {
                 var stock = await stockResponse.Content.ReadFromJsonAsync<dynamic>();
-                Console.WriteLine($"  Available: {stock.AvailableQuantity} units");
+                Console.WriteLine($"  Available: {stock?.AvailableQuantity} units");
             }
         }
         catch (Exception ex)
@@ -365,8 +366,8 @@ class Program
             if (availabilityResponse.IsSuccessStatusCode)
             {
                 var availability = await availabilityResponse.Content.ReadFromJsonAsync<dynamic>();
-                Console.WriteLine($"  Available: {availability.IsAvailable}");
-                Console.WriteLine($"  Available Quantity: {availability.AvailableQuantity}");
+                Console.WriteLine($"  Available: {availability?.IsAvailable}");
+                Console.WriteLine($"  Available Quantity: {availability?.AvailableQuantity}");
             }
         }
         catch (Exception ex)
@@ -397,9 +398,9 @@ class Program
             if (orderResponse.IsSuccessStatusCode)
             {
                 var result = await orderResponse.Content.ReadFromJsonAsync<dynamic>();
-                Console.WriteLine($"  Order ID: {result.OrderId}");
-                Console.WriteLine($"  Status: {result.Status}");
-                Console.WriteLine($"  Message: {result.Message}");
+                Console.WriteLine($"  Order ID: {result?.OrderId}");
+                Console.WriteLine($"  Status: {result?.Status}");
+                Console.WriteLine($"  Message: {result?.Message}");
             }
         }
         catch (Exception ex)
@@ -435,14 +436,14 @@ class Program
                     {
                         var production = await response.Content.ReadFromJsonAsync<dynamic>();
                         Console.WriteLine("\n--- Production Capacity Check ---");
-                        Console.WriteLine($"Can Produce: {(production.CanProduce ? "Yes" : "No")}");
-                        Console.WriteLine($"Available Stock: {production.AvailableStock}");
-                        Console.WriteLine($"Lead Time: {production.LeadTimeDays} days");
-                        if (production.EstimatedCompletionDate != null)
+                        Console.WriteLine($"Can Produce: {(production?.CanProduce == true ? "Yes" : "No")}");
+                        Console.WriteLine($"Available Stock: {production?.AvailableStock}");
+                        Console.WriteLine($"Lead Time: {production?.LeadTimeDays} days");
+                        if (production?.EstimatedCompletionDate != null)
                         {
                             Console.WriteLine($"Estimated Completion: {production.EstimatedCompletionDate}");
                         }
-                        Console.WriteLine($"Message: {production.Message}");
+                        Console.WriteLine($"Message: {production?.Message}");
                     }
                     else
                     {

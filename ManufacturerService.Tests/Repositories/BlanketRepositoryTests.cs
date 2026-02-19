@@ -1,6 +1,7 @@
 using Xunit;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 using ManufacturerService.Repositories;
 using ManufacturerService.Models;
 using ManufacturerService.Data;
@@ -19,7 +20,7 @@ public class BlanketRepositoryTests : IDisposable
             .Options;
 
         _context = new ManufacturerDbContext(options);
-        _repository = new BlanketRepository(_context);
+        _repository = new BlanketRepository(_context, NullLogger<BlanketRepository>.Instance);
     }
 
     [Fact]

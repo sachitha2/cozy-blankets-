@@ -92,13 +92,13 @@ public class BlanketServiceTests
     public async Task GetStockByModelIdAsync_WhenExists_ShouldReturnStock()
     {
         // Arrange
+        // AvailableQuantity is computed (Quantity - ReservedQuantity)
         var stock = new Stock
         {
             Id = 1,
             BlanketId = 1,
             Quantity = 100,
-            ReservedQuantity = 10,
-            AvailableQuantity = 90
+            ReservedQuantity = 10
         };
 
         _mockStockRepository.Setup(r => r.GetByBlanketIdAsync(1))
@@ -127,13 +127,13 @@ public class BlanketServiceTests
             Quantity = 50
         };
 
+        // AvailableQuantity is computed (Quantity - ReservedQuantity)
         var stock = new Stock
         {
             Id = 1,
             BlanketId = 1,
             Quantity = 100,
-            ReservedQuantity = 10,
-            AvailableQuantity = 90
+            ReservedQuantity = 10
         };
 
         _mockStockRepository.Setup(r => r.GetByBlanketIdAsync(1))

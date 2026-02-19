@@ -1,6 +1,7 @@
 using Xunit;
 using FluentAssertions;
 using Moq;
+using Microsoft.Extensions.Configuration;
 using SellerService.Services;
 using SellerService.Repositories;
 using SellerService.Models;
@@ -11,16 +12,23 @@ namespace SellerService.Tests.Services;
 public class SellerServiceTests
 {
     private readonly Mock<ICustomerOrderRepository> _mockOrderRepository;
+    private readonly Mock<ISellerInventoryRepository> _mockSellerInventoryRepository;
     private readonly Mock<IDistributorServiceClient> _mockDistributorClient;
     private readonly SellerService.Services.SellerService _sellerService;
 
     public SellerServiceTests()
     {
         _mockOrderRepository = new Mock<ICustomerOrderRepository>();
+        _mockSellerInventoryRepository = new Mock<ISellerInventoryRepository>();
         _mockDistributorClient = new Mock<IDistributorServiceClient>();
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?> { ["Seller:Id"] = "Seller-001" })
+            .Build();
         _sellerService = new SellerService.Services.SellerService(
             _mockOrderRepository.Object,
+            _mockSellerInventoryRepository.Object,
             _mockDistributorClient.Object,
+            configuration,
             Microsoft.Extensions.Logging.Abstractions.NullLogger<SellerService.Services.SellerService>.Instance
         );
     }
@@ -41,7 +49,7 @@ public class SellerServiceTests
             }
         };
 
-        var distributorResponse = new DistributorService.DTOs.OrderResponseDto
+        var distributorResponse = new DistributorOrderResponseDto
         {
             OrderId = 1,
             Status = "Fulfilled",
@@ -49,7 +57,7 @@ public class SellerServiceTests
             FulfilledFromStock = true
         };
 
-        _mockDistributorClient.Setup(c => c.PlaceOrderAsync(It.IsAny<DistributorService.DTOs.OrderRequestDto>()))
+        _mockDistributorClient.Setup(c => c.PlaceOrderAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string?>()))
             .ReturnsAsync(distributorResponse);
 
         var order = new CustomerOrder
@@ -76,15 +84,16 @@ public class SellerServiceTests
     public async Task CheckAvailabilityAsync_WhenAvailable_ShouldReturnTrue()
     {
         // Arrange
-        var distributorResponse = new DistributorService.DTOs.InventoryDto
+        var distributorResponse = new AvailabilityResponseDto
         {
-            Id = 1,
             BlanketId = 1,
             ModelName = "Test Blanket",
-            AvailableQuantity = 50
+            IsAvailable = true,
+            AvailableQuantity = 50,
+            Message = "In stock"
         };
 
-        _mockDistributorClient.Setup(c => c.GetInventoryByBlanketIdAsync(1))
+        _mockDistributorClient.Setup(c => c.CheckAvailabilityAsync(1))
             .ReturnsAsync(distributorResponse);
 
         // Act

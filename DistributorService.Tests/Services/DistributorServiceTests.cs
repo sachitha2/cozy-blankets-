@@ -29,19 +29,19 @@ public class DistributorServiceTests
     }
 
     [Fact]
-    public async Task GetAllInventoryAsync_ShouldReturnAllInventory()
+    public async Task GetInventoryAsync_ShouldReturnAllInventory()
     {
-        // Arrange
+        // Arrange - AvailableQuantity is computed (Quantity - ReservedQuantity)
         var inventory = new List<Inventory>
         {
-            new Inventory { Id = 1, BlanketId = 1, ModelName = "Test Blanket", Quantity = 50, AvailableQuantity = 45 }
+            new Inventory { Id = 1, BlanketId = 1, ModelName = "Test Blanket", Quantity = 50, ReservedQuantity = 5 }
         };
 
         _mockInventoryRepository.Setup(r => r.GetAllAsync())
             .ReturnsAsync(inventory);
 
         // Act
-        var result = await _distributorService.GetAllInventoryAsync();
+        var result = await _distributorService.GetInventoryAsync();
 
         // Assert
         result.Should().NotBeNull();
@@ -65,7 +65,7 @@ public class DistributorServiceTests
             BlanketId = 1,
             ModelName = "Test Blanket",
             Quantity = 50,
-            AvailableQuantity = 45,
+            ReservedQuantity = 5,
             UnitCost = 35.00m
         };
 

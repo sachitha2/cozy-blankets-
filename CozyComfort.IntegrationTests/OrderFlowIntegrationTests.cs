@@ -2,10 +2,6 @@ using Xunit;
 using FluentAssertions;
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
-using ManufacturerService;
-using DistributorService;
-using SellerService;
 
 namespace CozyComfort.IntegrationTests;
 
@@ -13,7 +9,7 @@ namespace CozyComfort.IntegrationTests;
 /// Integration tests for the complete order flow across all services
 /// These tests verify end-to-end functionality of the SOA system
 /// </summary>
-public class OrderFlowIntegrationTests : IClassFixture<WebApplicationFactory<Program>>, IDisposable
+public class OrderFlowIntegrationTests : IDisposable
 {
     private readonly HttpClient _manufacturerClient;
     private readonly HttpClient _distributorClient;
