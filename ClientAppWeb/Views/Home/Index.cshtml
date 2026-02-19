@@ -282,6 +282,14 @@
                     <button type="submit" class="btn btn-default">My orders</button>
                 </form>
                 <div class="separator"></div>
+                @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Seller"))
+                {
+                    <h3>My Inventory</h3>
+                    <form method="post" asp-action="LoadSellerInventory">
+                        <button type="submit" class="btn btn-success">My inventory</button>
+                    </form>
+                    <div class="separator"></div>
+                }
                 @if (User.Identity?.IsAuthenticated != true || !User.IsInRole("Customer"))
                 {
                     <h3>Admin / Demo</h3>
@@ -469,7 +477,40 @@
                 </div>
 
                 <div id="inventory" class="tab-content @(Model.ActiveTab == "inventory" ? "active" : "")" style="@(Model.ActiveTab == "inventory" ? "" : "display: none;")">
-                    @if (Model.Inventory.Any())
+                    @if (Model.SellerInventory.Any())
+                    {
+                        <p class="tab-intro">Your inventory.</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Blanket ID</th>
+                                    <th>Model Name</th>
+                                    <th>Quantity</th>
+                                    <th>Reserved</th>
+                                    <th>Available</th>
+                                    <th>Unit Cost</th>
+                                    <th>Last Updated</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.SellerInventory)
+                                {
+                                    <tr>
+                                        <td>@item.Id</td>
+                                        <td>@item.BlanketId</td>
+                                        <td><strong>@item.ModelName</strong></td>
+                                        <td>@item.Quantity</td>
+                                        <td>@item.ReservedQuantity</td>
+                                        <td>@item.AvailableQuantity</td>
+                                        <td>$@item.UnitCost.ToString("F2")</td>
+                                        <td>@(item.LastUpdated?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else if (Model.Inventory.Any())
                     {
                         <p class="tab-intro">Admin: distributor inventory.</p>
                         <table>
@@ -500,7 +541,16 @@
                     }
                     else
                     {
-                        <div class="alert alert-info">Admin: use <strong>Distributor inventory</strong> in the sidebar to load data.</div>
+                        <div class="alert alert-info">
+                            @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Seller"))
+                            {
+                                <text>Use <strong>My inventory</strong> in the sidebar to view your inventory.</text>
+                            }
+                            else
+                            {
+                                <text>Admin: use <strong>Distributor inventory</strong> in the sidebar to load data.</text>
+                            }
+                        </div>
                     }
                 </div>
 

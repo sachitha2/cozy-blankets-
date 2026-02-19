@@ -295,6 +295,35 @@ public class SellerService : ISellerService
         }
     }
 
+    public async Task<IEnumerable<SellerInventoryDto>> GetSellerInventoryAsync()
+    {
+        try
+        {
+            var inventory = await _sellerInventoryRepository.GetAllAsync();
+            return inventory.Select(MapInventoryToDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving seller inventory");
+            throw;
+        }
+    }
+
+    private static SellerInventoryDto MapInventoryToDto(Models.SellerInventory inventory)
+    {
+        return new SellerInventoryDto
+        {
+            Id = inventory.Id,
+            BlanketId = inventory.BlanketId,
+            ModelName = inventory.ModelName,
+            Quantity = inventory.Quantity,
+            ReservedQuantity = inventory.ReservedQuantity,
+            AvailableQuantity = inventory.AvailableQuantity,
+            UnitCost = inventory.UnitCost,
+            LastUpdated = inventory.LastUpdated
+        };
+    }
+
     private static DTOs.CustomerOrderDto MapToDto(Models.CustomerOrder order)
     {
         return new DTOs.CustomerOrderDto

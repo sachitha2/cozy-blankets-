@@ -10,6 +10,7 @@ public class HomeViewModel
     public List<CartItemModel> Cart { get; set; } = new();
     public StockModel? StockInfo { get; set; }
     public List<InventoryModel> Inventory { get; set; } = new();
+    public List<InventoryModel> SellerInventory { get; set; } = new();
     public AvailabilityModel? AvailabilityInfo { get; set; }
     public OrderResponseModel? OrderResponse { get; set; }
     public List<CustomerOrderModel> CustomerOrders { get; set; } = new();
@@ -55,8 +56,10 @@ public class InventoryModel
     public int BlanketId { get; set; }
     public string ModelName { get; set; } = "";
     public int Quantity { get; set; }
+    public int ReservedQuantity { get; set; }
     public int AvailableQuantity { get; set; }
     public decimal UnitCost { get; set; }
+    public DateTime? LastUpdated { get; set; }
 }
 
 public class AvailabilityModel

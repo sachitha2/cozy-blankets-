@@ -12,4 +12,5 @@ public interface ISellerService
     Task<IEnumerable<CustomerOrderDto>> GetAllCustomerOrdersAsync();
     Task<IEnumerable<CustomerOrderDto>> GetCustomerOrdersByEmailAsync(string customerEmail);
     Task<CustomerOrderDto?> GetCustomerOrderByIdAsync(int id);
+    Task<IEnumerable<SellerInventoryDto>> GetSellerInventoryAsync();
 }

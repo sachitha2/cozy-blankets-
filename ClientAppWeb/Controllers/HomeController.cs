@@ -94,6 +94,28 @@ public class HomeController : Controller
             {
                 viewModel.StatusMessage = "Welcome to Cozy Comfort. Ensure services are running to browse.";
             }
+
+            // Auto-load seller inventory when Seller logs in
+            if (User.Identity?.IsAuthenticated == true && User.IsInRole("Seller"))
+            {
+                try
+                {
+                    var inventoryResponse = await httpClient.GetAsync($"{SellerServiceUrl}/api/inventory");
+                    if (inventoryResponse.IsSuccessStatusCode)
+                    {
+                        viewModel.SellerInventory = await inventoryResponse.Content.ReadFromJsonAsync<List<InventoryModel>>() ?? new();
+                        viewModel.ActiveTab = "inventory";
+                        if (viewModel.SellerInventory.Any())
+                        {
+                            viewModel.StatusMessage = $"Welcome! You have {viewModel.SellerInventory.Count} inventory item(s).";
+                        }
+                    }
+                }
+                catch
+                {
+                    // If seller inventory fails to load, continue with normal page
+                }
+            }
         }
         catch
         {
@@ -331,6 +353,42 @@ public class HomeController : Controller
             {
                 viewModel.Inventory = await response.Content.ReadFromJsonAsync<List<InventoryModel>>() ?? new();
                 viewModel.StatusMessage = $"Loaded {viewModel.Inventory.Count} inventory items";
+                viewModel.ActiveTab = "inventory";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> LoadSellerInventory()
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            // Preserve catalog and cart for better UX
+            var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (blanketsResponse.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+
+            var response = await httpClient.GetAsync($"{SellerServiceUrl}/api/inventory");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.SellerInventory = await response.Content.ReadFromJsonAsync<List<InventoryModel>>() ?? new();
+                viewModel.StatusMessage = $"Loaded {viewModel.SellerInventory.Count} inventory items";
                 viewModel.ActiveTab = "inventory";
             }
             else
