@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
 using ManufacturerService.Data;
@@ -48,9 +49,21 @@ builder.Services.AddHealthChecks()
 builder.Services.AddScoped<IBlanketRepository, BlanketRepository>();
 builder.Services.AddScoped<IStockRepository, StockRepository>();
 builder.Services.AddScoped<IProductionCapacityRepository, ProductionCapacityRepository>();
+builder.Services.AddScoped<IProductionOrderRepository, ProductionOrderRepository>();
 
 // Register Services (Scoped - one per HTTP request)
 builder.Services.AddScoped<IBlanketService, BlanketService>();
+builder.Services.AddScoped<IProductionOrderService, ProductionOrderService>();
+
+// Rate limiting (fixed window: 100 requests per minute per client)
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("fixed", config =>
+    {
+        config.Window = TimeSpan.FromMinutes(1);
+        config.PermitLimit = 100;
+    });
+});
 
 // Add CORS if needed for inter-service communication
 builder.Services.AddCors(options =>
@@ -95,6 +108,8 @@ using (var scope = app.Services.CreateScope())
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseMiddleware<ApiKeyMiddleware>();
+app.UseRateLimiter();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthorization();

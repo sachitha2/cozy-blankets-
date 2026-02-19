@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using SellerService.DTOs;
 using SellerService.Services;
 
@@ -9,6 +10,8 @@ namespace SellerService.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
+[EnableRateLimiting("fixed")]
 [Produces("application/json")]
 public class AvailabilityController : ControllerBase
 {

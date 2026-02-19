@@ -17,6 +17,7 @@ public class ManufacturerDbContext : DbContext
     public DbSet<Blanket> Blankets { get; set; }
     public DbSet<Stock> Stocks { get; set; }
     public DbSet<ProductionCapacity> ProductionCapacities { get; set; }
+    public DbSet<ProductionOrder> ProductionOrders { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -59,6 +60,19 @@ public class ManufacturerDbContext : DbContext
                   .HasForeignKey<ProductionCapacity>(e => e.BlanketId)
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => e.BlanketId).IsUnique();
+        });
+
+        // ProductionOrder configuration
+        modelBuilder.Entity<ProductionOrder>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Status).IsRequired().HasMaxLength(20);
+            entity.HasOne(e => e.Blanket)
+                  .WithMany()
+                  .HasForeignKey(e => e.BlanketId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.ExternalOrderId);
+            entity.HasIndex(e => e.Status);
         });
     }
 }

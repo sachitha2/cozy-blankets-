@@ -100,4 +100,90 @@ public class ManufacturerServiceClient : IManufacturerServiceClient
             };
         }
     }
+
+    public async Task<ManufacturerProductionOrderDto?> CreateProductionOrderAsync(int blanketId, int quantity, int externalOrderId)
+    {
+        try
+        {
+            var manufacturerServiceUrl = _configuration["ManufacturerService:BaseUrl"] 
+                ?? "http://localhost:5001";
+
+            var request = new { blanketId, quantity, externalOrderId };
+            var response = await _httpClient.PostAsJsonAsync(
+                $"{manufacturerServiceUrl}/api/productionorders", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ManufacturerProductionOrderDto>();
+                _logger.LogInformation("Created production order for BlanketId: {BlanketId}, ExternalOrderId: {ExternalOrderId}", blanketId, externalOrderId);
+                return result;
+            }
+
+            _logger.LogWarning("Create production order failed. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception creating production order at ManufacturerService");
+            return null;
+        }
+    }
+
+    public async Task<ManufacturerProductionOrderDto?> GetProductionOrderByExternalOrderIdAsync(int externalOrderId)
+    {
+        try
+        {
+            var manufacturerServiceUrl = _configuration["ManufacturerService:BaseUrl"] 
+                ?? "http://localhost:5001";
+
+            var response = await _httpClient.GetAsync(
+                $"{manufacturerServiceUrl}/api/productionorders/by-external/{externalOrderId}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                return await response.Content.ReadFromJsonAsync<ManufacturerProductionOrderDto>();
+            }
+
+            if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                return null;
+            }
+
+            _logger.LogWarning("Get production order by external id failed. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception getting production order from ManufacturerService");
+            return null;
+        }
+    }
+
+    public async Task<ManufacturerProductionOrderDto?> ShipProductionOrderAsync(int productionOrderId, int quantity)
+    {
+        try
+        {
+            var manufacturerServiceUrl = _configuration["ManufacturerService:BaseUrl"] 
+                ?? "http://localhost:5001";
+
+            var request = new { quantity };
+            var response = await _httpClient.PostAsJsonAsync(
+                $"{manufacturerServiceUrl}/api/productionorders/{productionOrderId}/ship", request);
+
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<ManufacturerProductionOrderDto>();
+                _logger.LogInformation("Shipped production order {ProductionOrderId}, Quantity: {Quantity}", productionOrderId, quantity);
+                return result;
+            }
+
+            _logger.LogWarning("Ship production order failed. Status: {StatusCode}", response.StatusCode);
+            return null;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception shipping production order at ManufacturerService");
+            return null;
+        }
+    }
 }

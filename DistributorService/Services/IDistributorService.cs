@@ -9,4 +9,5 @@ public interface IDistributorService
 {
     Task<IEnumerable<InventoryDto>> GetInventoryAsync();
     Task<OrderResponseDto> ProcessOrderAsync(OrderRequestDto request);
+    Task<ReceiveFromManufacturerResponseDto> ReceiveFromManufacturerAsync(int orderId);
 }

@@ -701,15 +701,19 @@ dotnet test
 
 See [Testing Documentation](./docs/TESTING_DOCUMENTATION.md) for detailed test cases and results.
 
+## Cross-cutting concerns (implemented)
+
+- **API versioning**: All API controllers support both `/api/...` and `/api/v1/...` routes.
+- **Rate limiting**: Fixed-window limiter (100 requests per minute per client) on all services.
+- **Distributed tracing**: `X-Correlation-Id` is set per request and propagated to downstream services (Seller → Distributor → Manufacturer).
+- **Optional API key**: Set `ApiKey:Enabled` to `true` and `ApiKey:Key` in appsettings to require `X-Api-Key` header. Health and Swagger are excluded.
+
 ## Next Steps
 
-- Add authentication/authorization
-- Implement API versioning
+- Add role-based authorization (e.g. Seller vs Distributor vs Manufacturer roles)
 - Increase test coverage to 80%+
-- Implement retry policies for inter-service calls
-- Add health check endpoints
-- Implement distributed tracing
-- Add API rate limiting
+- Retry policies for inter-service calls (Polly) are already in place for Distributor and Seller
+- Health check endpoints are available at `/health` on each service
 - Implement caching strategies
 
 ## Quick Reference

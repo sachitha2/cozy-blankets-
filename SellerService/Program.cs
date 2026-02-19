@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Polly;
 using Polly.Extensions.Http;
@@ -53,14 +54,30 @@ builder.Services.AddScoped<ISellerInventoryRepository, SellerInventoryRepository
 // Register Services (Scoped - one per HTTP request)
 builder.Services.AddScoped<ISellerService, SellerService.Services.SellerService>();
 
-// Register HTTP Client for DistributorService communication with Polly retry
+// HttpContext accessor for correlation id propagation
+builder.Services.AddHttpContextAccessor();
+
+// Register HTTP Client for DistributorService communication with Polly retry and correlation propagation
 builder.Services.AddHttpClient<IDistributorServiceClient, DistributorServiceClient>(client =>
 {
     var baseUrl = builder.Configuration["DistributorService:BaseUrl"] ?? "http://localhost:5002";
     client.BaseAddress = new Uri(baseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
 })
+.AddHttpMessageHandler<SellerService.Middleware.CorrelationIdPropagationHandler>()
 .AddPolicyHandler(GetRetryPolicy());
+
+builder.Services.AddScoped<SellerService.Middleware.CorrelationIdPropagationHandler>();
+
+// Rate limiting (fixed window: 100 requests per minute)
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("fixed", config =>
+    {
+        config.Window = TimeSpan.FromMinutes(1);
+        config.PermitLimit = 100;
+    });
+});
 
 static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>
     HttpPolicyExtensions
@@ -141,6 +158,8 @@ if (app.Environment.IsDevelopment())
 app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseHttpsRedirection();
 app.UseCors("AllowAll");
+app.UseMiddleware<ApiKeyMiddleware>();
+app.UseRateLimiter();
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthorization();

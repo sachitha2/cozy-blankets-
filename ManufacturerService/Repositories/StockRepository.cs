@@ -150,4 +150,27 @@ public class StockRepository : IStockRepository
             throw;
         }
     }
+
+    public async Task<bool> DecreaseStockAsync(int blanketId, int quantity)
+    {
+        try
+        {
+            var stock = await GetByBlanketIdAsync(blanketId);
+            if (stock == null || stock.AvailableQuantity < quantity)
+            {
+                return false;
+            }
+
+            stock.Quantity -= quantity;
+            stock.LastUpdated = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Stock decreased: {Quantity} units for BlanketId: {BlanketId}", quantity, blanketId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error decreasing stock for BlanketId: {BlanketId}", blanketId);
+            throw;
+        }
+    }
 }

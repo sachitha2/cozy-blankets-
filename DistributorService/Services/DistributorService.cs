@@ -101,6 +101,16 @@ public class DistributorService : IDistributorService
                 
                 var savedOrder = await _orderRepository.AddAsync(order);
                 
+                var productionOrder = await _manufacturerClient.CreateProductionOrderAsync(request.BlanketId, request.Quantity, savedOrder.Id);
+                if (productionOrder != null)
+                {
+                    _logger.LogInformation("Created production order {ProductionOrderId} at manufacturer for distributor order {OrderId}", productionOrder.Id, savedOrder.Id);
+                }
+                else
+                {
+                    _logger.LogWarning("Failed to create production order at manufacturer for order {OrderId}", savedOrder.Id);
+                }
+                
                 _logger.LogInformation("Order {OrderId} requires manufacturer production. Lead time: {LeadTimeDays} days", 
                     savedOrder.Id, manufacturerResponse.LeadTimeDays);
                 
@@ -136,6 +146,89 @@ public class DistributorService : IDistributorService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing order");
+            throw;
+        }
+    }
+
+    public async Task<ReceiveFromManufacturerResponseDto> ReceiveFromManufacturerAsync(int orderId)
+    {
+        try
+        {
+            var order = await _orderRepository.GetByIdAsync(orderId);
+            if (order == null)
+            {
+                return new ReceiveFromManufacturerResponseDto { Success = false, Message = "Order not found.", OrderId = orderId };
+            }
+
+            if (order.Status != "PendingManufacturer")
+            {
+                return new ReceiveFromManufacturerResponseDto
+                {
+                    Success = false,
+                    Message = $"Order is not pending manufacturer (current status: {order.Status}).",
+                    OrderId = orderId,
+                    OrderStatus = order.Status
+                };
+            }
+
+            var productionOrder = await _manufacturerClient.GetProductionOrderByExternalOrderIdAsync(orderId);
+            if (productionOrder == null)
+            {
+                return new ReceiveFromManufacturerResponseDto { Success = false, Message = "Production order not found at manufacturer.", OrderId = orderId };
+            }
+
+            if (productionOrder.Status != "Completed")
+            {
+                return new ReceiveFromManufacturerResponseDto
+                {
+                    Success = false,
+                    Message = $"Production not complete yet (status: {productionOrder.Status}). Complete the production order at the manufacturer first.",
+                    OrderId = orderId
+                };
+            }
+
+            var shipResult = await _manufacturerClient.ShipProductionOrderAsync(productionOrder.Id, order.Quantity);
+            if (shipResult == null)
+            {
+                return new ReceiveFromManufacturerResponseDto { Success = false, Message = "Failed to ship from manufacturer (e.g. insufficient stock).", OrderId = orderId };
+            }
+
+            var inventory = await _inventoryRepository.GetByBlanketIdAsync(order.BlanketId);
+            if (inventory == null)
+            {
+                var newInventory = new Inventory
+                {
+                    BlanketId = order.BlanketId,
+                    ModelName = order.ModelName,
+                    Quantity = order.Quantity,
+                    ReservedQuantity = 0,
+                    UnitCost = 0
+                };
+                await _inventoryRepository.AddAsync(newInventory);
+            }
+            else
+            {
+                await _inventoryRepository.IncreaseInventoryAsync(order.BlanketId, order.Quantity);
+            }
+
+            order.Status = "Fulfilled";
+            order.FulfilledDate = DateTime.UtcNow;
+            order.Notes = (order.Notes ?? "") + " [Received from manufacturer and fulfilled.]";
+            await _orderRepository.UpdateAsync(order);
+
+            _logger.LogInformation("Order {OrderId} received from manufacturer and fulfilled", orderId);
+
+            return new ReceiveFromManufacturerResponseDto
+            {
+                Success = true,
+                Message = $"Received {order.Quantity} units from manufacturer and fulfilled order.",
+                OrderId = orderId,
+                OrderStatus = "Fulfilled"
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error receiving from manufacturer for order {OrderId}", orderId);
             throw;
         }
     }

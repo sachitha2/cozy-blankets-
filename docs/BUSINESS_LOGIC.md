@@ -58,16 +58,17 @@ This document maps the implementation to the **Current Process** described in th
 
 ---
 
-## PendingManufacturer: current behavior
+## PendingManufacturer and backorder fulfillment
 
-When distributor stock is insufficient, the Distributor calls the Manufacturer for **production capacity and lead time only**. The system does **not**:
+When distributor stock is insufficient, the Distributor checks with the Manufacturer and, if the Manufacturer can produce:
 
-- Create a committed production order at the Manufacturer
-- Trigger reverse fulfillment (Manufacturer → Distributor → Seller) when production completes
+1. **Committed production order**: The Distributor creates a committed production order at the Manufacturer via `POST /api/productionorders` (with `BlanketId`, `Quantity`, `ExternalOrderId` = distributor order id). The customer receives order status **Processing** with estimated delivery (lead time in days).
 
-The customer receives an order status of **Processing** with an estimated delivery (lead time in days). Actual backorder fulfillment would require a separate flow (e.g. production order commit, notification when stock is ready, then fulfillment).
+2. **Reverse fulfillment**: When production is complete:
+   - At the Manufacturer: call `POST /api/productionorders/{id}/complete` to add produced quantity to manufacturer stock.
+   - The Distributor then calls `POST /api/order/{orderId}/receive-from-manufacturer`. This calls the Manufacturer to ship (decrement manufacturer stock), adds the quantity to the Distributor’s inventory (creating an inventory row if needed), and marks the order **Fulfilled**.
 
-**Future: backorder fulfillment** — A later enhancement could add: (1) a Production Order API at the Manufacturer that commits/reserves production, and (2) a way for the Distributor to be notified when stock is ready (callback or polling) so pending orders can be fulfilled automatically.
+**Manufacturer APIs**: `POST /api/productionorders` (create), `GET /api/productionorders/by-external/{externalOrderId}`, `POST /api/productionorders/{id}/complete`, `POST /api/productionorders/{id}/ship`.
 
 ---
 

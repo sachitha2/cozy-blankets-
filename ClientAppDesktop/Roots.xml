@@ -1,6 +1,0 @@
-<Linker>
-  <Assembly fullname="ClientAppDesktop" />
-  <Assembly fullname="Avalonia.Base" />
-  <Assembly fullname="Avalonia.Controls" />
-  <Assembly fullname="Avalonia.Markup.Xaml" />
-</Linker>

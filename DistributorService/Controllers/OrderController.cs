@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using DistributorService.DTOs;
 using DistributorService.Services;
 
@@ -9,6 +10,8 @@ namespace DistributorService.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
+[EnableRateLimiting("fixed")]
 [Produces("application/json")]
 public class OrderController : ControllerBase
 {
@@ -64,6 +67,36 @@ public class OrderController : ControllerBase
         {
             _logger.LogError(ex, "Error processing order");
             return StatusCode(500, new { error = "An error occurred while processing the order" });
+        }
+    }
+
+    /// <summary>
+    /// Receive stock from manufacturer and fulfill a pending order (reverse fulfillment)
+    /// </summary>
+    /// <param name="id">Distributor order id (must be in PendingManufacturer status)</param>
+    /// <response code="200">Returns receive result</response>
+    /// <response code="400">Order not found or not pending manufacturer</response>
+    /// <response code="500">Internal server error</response>
+    [HttpPost("{id:int}/receive-from-manufacturer")]
+    [ProducesResponseType(typeof(ReceiveFromManufacturerResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ReceiveFromManufacturerResponseDto>> ReceiveFromManufacturer(int id)
+    {
+        try
+        {
+            var response = await _distributorService.ReceiveFromManufacturerAsync(id);
+            if (!response.Success)
+            {
+                return BadRequest(response);
+            }
+
+            return Ok(response);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error receiving from manufacturer for order {OrderId}", id);
+            return StatusCode(500, new { error = "An error occurred while receiving from manufacturer" });
         }
     }
 }

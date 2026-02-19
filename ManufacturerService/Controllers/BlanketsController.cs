@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ManufacturerService.DTOs;
 using ManufacturerService.Services;
 
@@ -10,6 +11,8 @@ namespace ManufacturerService.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[Route("api/v1/[controller]")]
+[EnableRateLimiting("fixed")]
 [Produces("application/json")]
 public class BlanketsController : ControllerBase
 {
