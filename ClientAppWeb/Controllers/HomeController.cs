@@ -960,6 +960,7 @@ public class HomeController : Controller
 
     // ========== Distributor Actions ==========
 
+    [HttpGet]
     [HttpPost]
     [Authorize(Roles = "Distributor")]
     public async Task<IActionResult> LoadDistributorInventory()
@@ -1103,6 +1104,7 @@ public class HomeController : Controller
         }
     }
 
+    [HttpGet]
     [HttpPost]
     [Authorize(Roles = "Distributor")]
     public async Task<IActionResult> LoadDistributorOrders(string? status = null)
@@ -1248,6 +1250,7 @@ public class HomeController : Controller
         }
     }
 
+    [HttpGet]
     [HttpPost]
     [Authorize(Roles = "Distributor")]
     public async Task<IActionResult> LoadDeliveryTypes()
@@ -1323,7 +1326,7 @@ public class HomeController : Controller
 
     [HttpPost]
     [Authorize(Roles = "Distributor")]
-    public async Task<IActionResult> UpdateDeliveryType(int id, string name, string description, decimal cost, int estimatedDays, bool isActive)
+    public async Task<IActionResult> UpdateDeliveryType(int id, string name, string description, decimal cost, int estimatedDays, bool isActive = false)
     {
         var httpClient = _httpClientFactory.CreateClient();
         var viewModel = new HomeViewModel { Cart = GetCart() };

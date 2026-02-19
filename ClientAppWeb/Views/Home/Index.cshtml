@@ -369,54 +369,57 @@
                     </div>
                 }
 
-                <h3 style="margin-bottom: 16px;">Our blankets</h3>
-                @if (Model.Blankets.Any())
+                @if (Model.ActiveTab != "manufacturer")
                 {
-                    <div class="product-grid">
-                        @foreach (var blanket in Model.Blankets)
-                        {
-                            <div class="product-card">
-                                <a href="@Url.Action("ProductDetail", new { id = blanket.Id })" class="product-card-link" style="text-decoration: none; color: inherit;">
-                                    <div class="img-wrap">
-                                        @{
-                                            var catalogImageUrl = !string.IsNullOrEmpty(blanket.ImageUrl) ? blanket.ImageUrl : blanket.AdditionalImageUrls?.FirstOrDefault();
-                                        }
-                                        @if (!string.IsNullOrEmpty(catalogImageUrl))
-                                        {
-                                            <img src="@catalogImageUrl" alt="@blanket.ModelName" />
-                                        }
-                                        else
-                                        {
-                                            <span>No image</span>
-                                        }
-                                    </div>
-                                    <div class="body">
-                                        <div class="title">@blanket.ModelName</div>
-                                        <div class="price">$@blanket.UnitPrice.ToString("F2")</div>
-                                        <p style="font-size: 13px; color: #555; margin-bottom: 12px;">@blanket.Description</p>
-                                        <span class="view-details-link">View details & more images →</span>
-                                    </div>
-                                </a>
-                                <div class="body" style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 0;">
-                                    <form method="post" asp-action="AddToCart" style="display: flex; gap: 8px; align-items: center;">
-                                        <input type="hidden" name="blanketId" value="@blanket.Id" />
-                                        <input type="number" name="quantity" value="1" min="1" max="99" style="width: 60px; padding: 8px;" />
-                                        <button type="submit" class="btn btn-success" style="flex: 1;">Add to cart</button>
-                                    </form>
-                                    @if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Customer"))
-                                    {
-                                        <div class="add-image">
-                                            <a href="#" class="add-image-link" data-id="@blanket.Id" data-name="@blanket.ModelName">Add image</a>
+                    <h3 style="margin-bottom: 16px;">Our blankets</h3>
+                    @if (Model.Blankets.Any())
+                    {
+                        <div class="product-grid">
+                            @foreach (var blanket in Model.Blankets)
+                            {
+                                <div class="product-card">
+                                    <a href="@Url.Action("ProductDetail", new { id = blanket.Id })" class="product-card-link" style="text-decoration: none; color: inherit;">
+                                        <div class="img-wrap">
+                                            @{
+                                                var catalogImageUrl = !string.IsNullOrEmpty(blanket.ImageUrl) ? blanket.ImageUrl : blanket.AdditionalImageUrls?.FirstOrDefault();
+                                            }
+                                            @if (!string.IsNullOrEmpty(catalogImageUrl))
+                                            {
+                                                <img src="@catalogImageUrl" alt="@blanket.ModelName" />
+                                            }
+                                            else
+                                            {
+                                                <span>No image</span>
+                                            }
                                         </div>
-                                    }
+                                        <div class="body">
+                                            <div class="title">@blanket.ModelName</div>
+                                            <div class="price">$@blanket.UnitPrice.ToString("F2")</div>
+                                            <p style="font-size: 13px; color: #555; margin-bottom: 12px;">@blanket.Description</p>
+                                            <span class="view-details-link">View details & more images →</span>
+                                        </div>
+                                    </a>
+                                    <div class="body" style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 0;">
+                                        <form method="post" asp-action="AddToCart" style="display: flex; gap: 8px; align-items: center;">
+                                            <input type="hidden" name="blanketId" value="@blanket.Id" />
+                                            <input type="number" name="quantity" value="1" min="1" max="99" style="width: 60px; padding: 8px;" />
+                                            <button type="submit" class="btn btn-success" style="flex: 1;">Add to cart</button>
+                                        </form>
+                                        @if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Customer"))
+                                        {
+                                            <div class="add-image">
+                                                <a href="#" class="add-image-link" data-id="@blanket.Id" data-name="@blanket.ModelName">Add image</a>
+                                            </div>
+                                        }
+                                    </div>
                                 </div>
-                            </div>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="alert alert-info">Catalog will appear here when the store is connected. Use <strong>Refresh catalog</strong> to load products.</div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">Catalog will appear here when the store is connected. Use <strong>Refresh catalog</strong> to load products.</div>
+                    }
                 }
 
                 <div class="tabs" style="margin-top: 32px;">
@@ -993,7 +996,7 @@
                                                         </div>
                                                         <div style="margin-bottom: 8px;">
                                                             <label>
-                                                                <input type="checkbox" name="isActive" value="true" checked="@dt.IsActive" />
+                                                                <input type="checkbox" name="isActive" value="true" @(dt.IsActive ? "checked" : "") />
                                                                 Active
                                                             </label>
                                                         </div>
