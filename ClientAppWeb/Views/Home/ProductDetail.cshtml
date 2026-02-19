@@ -100,16 +100,19 @@
                     <p style="margin-top: 20px;">
                         <a href="@Url.Action("Index")" class="btn btn-default">Continue shopping</a>
                     </p>
-                    <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #dee2e6;">
-                        <h4 style="margin-bottom: 12px; font-size: 16px;">Upload image to gallery</h4>
-                        <p style="font-size: 13px; color: #555; margin-bottom: 12px;">The first image in the gallery is used as the main image.</p>
-                        <form method="post" asp-action="UploadAdditionalImage" enctype="multipart/form-data">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="blanketId" value="@Model.Id" />
-                            <input type="file" name="imageFile" accept=".jpg,.jpeg,.png,.gif,.webp" style="margin-bottom: 8px;" />
-                            <button type="submit" class="btn btn-default">Upload image to gallery</button>
-                        </form>
-                    </div>
+                    @if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Customer"))
+                    {
+                        <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                            <h4 style="margin-bottom: 12px; font-size: 16px;">Upload image to gallery</h4>
+                            <p style="font-size: 13px; color: #555; margin-bottom: 12px;">The first image in the gallery is used as the main image.</p>
+                            <form method="post" asp-action="UploadAdditionalImage" enctype="multipart/form-data">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="blanketId" value="@Model.Id" />
+                                <input type="file" name="imageFile" accept=".jpg,.jpeg,.png,.gif,.webp" style="margin-bottom: 8px;" />
+                                <button type="submit" class="btn btn-default">Upload image to gallery</button>
+                            </form>
+                        </div>
+                    }
                 </div>
             </div>
         </div>
