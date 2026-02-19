@@ -278,9 +278,12 @@
                 <form method="post" asp-action="LoadBlankets">
                     <button type="submit" class="btn btn-primary">Refresh catalog</button>
                 </form>
-                <form method="post" asp-action="LoadCustomerOrders">
-                    <button type="submit" class="btn btn-default">My orders</button>
-                </form>
+                @if (User.Identity?.IsAuthenticated != true || User.IsInRole("Customer"))
+                {
+                    <form method="post" asp-action="LoadCustomerOrders">
+                        <button type="submit" class="btn btn-default">My orders</button>
+                    </form>
+                }
                 <div class="separator"></div>
                 @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Seller"))
                 {
