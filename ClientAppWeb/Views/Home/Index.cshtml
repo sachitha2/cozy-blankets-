@@ -372,7 +372,7 @@
                     </div>
                 }
 
-                @if (Model.ActiveTab != "manufacturer")
+                @if (Model.ActiveTab != "manufacturer" && Model.ActiveTab != "distributor-inventory" && Model.ActiveTab != "distributor-orders" && Model.ActiveTab != "delivery-types")
                 {
                     <h3 style="margin-bottom: 16px;">Our blankets</h3>
                     @if (Model.Blankets.Any())
