@@ -34,6 +34,26 @@ public class CustomerOrderRepository : ICustomerOrderRepository
         }
     }
 
+    public async Task<IEnumerable<CustomerOrder>> GetByCustomerEmailAsync(string customerEmail)
+    {
+        if (string.IsNullOrWhiteSpace(customerEmail))
+            return Array.Empty<CustomerOrder>();
+        try
+        {
+            var email = customerEmail.Trim();
+            return await _context.CustomerOrders
+                .Include(o => o.OrderItems)
+                .Where(o => o.CustomerEmail == email)
+                .OrderByDescending(o => o.OrderDate)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving customer orders for email");
+            throw;
+        }
+    }
+
     public async Task<CustomerOrder?> GetByIdAsync(int id)
     {
         try

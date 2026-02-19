@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using SellerService.Exceptions;
 
 namespace SellerService.Middleware;
 
@@ -39,6 +40,7 @@ public class ExceptionHandlingMiddleware
         {
             ArgumentException or ArgumentNullException => (HttpStatusCode.BadRequest, "Bad request"),
             KeyNotFoundException => (HttpStatusCode.NotFound, "Not found"),
+            DownstreamServiceUnavailableException => (HttpStatusCode.BadGateway, "Service temporarily unavailable"),
             _ => (HttpStatusCode.InternalServerError, "An internal server error occurred")
         };
 

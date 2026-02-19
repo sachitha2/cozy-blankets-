@@ -414,6 +414,15 @@ dotnet restore
    - SellerService: 5003
 3. Try accessing Swagger UI in browser first
 
+### Order could not be placed (InternalServerError)
+
+**Error:** Web or client shows "Order could not be placed: InternalServerError" (or another status). The web app now shows the API error detail when available.
+
+**Solution:**
+1. **Start services in order:** ManufacturerService → DistributorService → SellerService. If DistributorService is not running, SellerService may fail when processing orders.
+2. **SellerService database:** Ensure SQLite is writable. Check `SellerService/appsettings.json` → `ConnectionStrings:DefaultConnection`. The service runs `EnsureCreated()` at startup; if the path is invalid or read-only, order placement will fail.
+3. **URLs:** ClientAppWeb: `appsettings.json` → `Services:SellerServiceUrl` (default `http://localhost:5003`). SellerService: `DistributorService:BaseUrl` (default `http://localhost:5002`). Ensure they point to the running instances.
+
 ## Testing the Complete System
 
 ### Option 1: Use Client Application (Recommended)

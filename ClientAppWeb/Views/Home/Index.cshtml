@@ -303,18 +303,7 @@
                         else
                         {
                             <form method="post" asp-action="PlaceOrderFromCart">
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label>Your name</label>
-                                    <input type="text" name="CustomerName" required placeholder="e.g. John Doe" />
-                                </div>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label>Email</label>
-                                    <input type="email" name="CustomerEmail" required placeholder="john@example.com" />
-                                </div>
-                                <div class="form-group" style="margin-bottom: 12px;">
-                                    <label>Phone</label>
-                                    <input type="text" name="CustomerPhone" placeholder="optional" />
-                                </div>
+                                <p class="text-muted" style="margin-bottom: 12px;">Ordering as: <strong>@(User.Identity?.Name)</strong> (@(User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "—"))</p>
                                 <div class="form-group" style="margin-bottom: 16px;">
                                     <label>Shipping address</label>
                                     <input type="text" name="ShippingAddress" required placeholder="123 Main St, City" />

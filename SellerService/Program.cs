@@ -67,6 +67,25 @@ static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>
         .HandleTransientHttpError()
         .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
+/// <summary>
+/// Ensures SellerInventories table exists. EnsureCreated() does not add new tables to an existing DB.
+/// </summary>
+static void EnsureSellerInventoriesTableExists(SellerDbContext context)
+{
+    const string createSql = """
+        CREATE TABLE IF NOT EXISTS SellerInventories (
+            Id INTEGER PRIMARY KEY AUTOINCREMENT,
+            BlanketId INTEGER NOT NULL,
+            ModelName TEXT NOT NULL,
+            Quantity INTEGER NOT NULL,
+            ReservedQuantity INTEGER NOT NULL,
+            UnitCost REAL NOT NULL,
+            LastUpdated TEXT NOT NULL
+        );
+        """;
+    context.Database.ExecuteSqlRaw(createSql);
+}
+
 // Add CORS for inter-service communication
 builder.Services.AddCors(options =>
 {
@@ -88,6 +107,9 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<SellerDbContext>();
         context.Database.EnsureCreated();
+        // EnsureCreated() does not add new tables to an existing database. If the DB was created
+        // before SellerInventories was added, create the table explicitly (SQLite).
+        EnsureSellerInventoriesTableExists(context);
         if (!context.SellerInventories.Any())
         {
             context.SellerInventories.AddRange(

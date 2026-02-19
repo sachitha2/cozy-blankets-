@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
@@ -27,6 +28,9 @@ public class HomeController : Controller
     private string DistributorServiceUrl => _configuration["Services:DistributorServiceUrl"] ?? "http://localhost:5002";
     private string SellerServiceUrl => _configuration["Services:SellerServiceUrl"] ?? "http://localhost:5003";
 
+    /// <summary>Gets the current user's email from claims (for filtering "my orders").</summary>
+    private string? GetCurrentCustomerEmail() => User.FindFirstValue(ClaimTypes.Email);
+
     private List<CartItemModel> GetCart()
     {
         var bytes = HttpContext.Session.Get(CartSessionKey);
@@ -44,6 +48,28 @@ public class HomeController : Controller
     {
         var json = JsonSerializer.Serialize(cart);
         HttpContext.Session.Set(CartSessionKey, System.Text.Encoding.UTF8.GetBytes(json));
+    }
+
+    /// <summary>
+    /// Parses API error response (RFC 7807 detail or controller error) and returns a safe message for the user.
+    /// </summary>
+    private static string GetOrderErrorMessage(System.Net.HttpStatusCode statusCode, string responseBody)
+    {
+        const int maxPlainLength = 200;
+        if (string.IsNullOrWhiteSpace(responseBody))
+            return $"Order could not be placed: {statusCode}";
+        try
+        {
+            using var doc = JsonDocument.Parse(responseBody);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("detail", out var detail))
+                return $"Order could not be placed: {detail.GetString()?.Trim() ?? statusCode.ToString()}";
+            if (root.TryGetProperty("error", out var err))
+                return $"Order could not be placed: {err.GetString()?.Trim() ?? statusCode.ToString()}";
+        }
+        catch { /* not JSON */ }
+        var safe = responseBody.Length <= maxPlainLength ? responseBody : responseBody[..maxPlainLength] + "...";
+        return $"Order could not be placed: {safe.Trim()}";
     }
 
     /// <summary>
@@ -320,14 +346,19 @@ public class HomeController : Controller
                 var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
                 if (blanketsResponse.IsSuccessStatusCode)
                     viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
-                var ordersResponse = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder");
-                if (ordersResponse.IsSuccessStatusCode)
-                    viewModel.CustomerOrders = await ordersResponse.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
+                var email = GetCurrentCustomerEmail();
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    var ordersUrl = $"{SellerServiceUrl}/api/customerorder/by-customer?customerEmail={Uri.EscapeDataString(email)}";
+                    var ordersResponse = await httpClient.GetAsync(ordersUrl);
+                    if (ordersResponse.IsSuccessStatusCode)
+                        viewModel.CustomerOrders = await ordersResponse.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
+                }
             }
             else
             {
-                var error = await response.Content.ReadAsStringAsync();
-                viewModel.StatusMessage = $"Order could not be placed: {response.StatusCode}";
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = GetOrderErrorMessage(response.StatusCode, errorBody);
             }
 
             // Keep catalog so customer can try again
@@ -374,11 +405,14 @@ public class HomeController : Controller
 
         try
         {
+            // Use logged-in customer's name and email; only shipping address comes from the form
+            var customerName = User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.Name) ?? "";
+            var customerEmail = GetCurrentCustomerEmail() ?? "";
             var order = new
             {
-                customerName = request.CustomerName,
-                customerEmail = request.CustomerEmail,
-                customerPhone = request.CustomerPhone ?? "",
+                customerName,
+                customerEmail,
+                customerPhone = "", // not collected at registration; can be added to profile later
                 shippingAddress = request.ShippingAddress,
                 items = cart.Select(c => new { blanketId = c.BlanketId, quantity = c.Quantity }).ToArray()
             };
@@ -393,15 +427,21 @@ public class HomeController : Controller
                 var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
                 if (blanketsResponse.IsSuccessStatusCode)
                     viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
-                var ordersResponse = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder");
-                if (ordersResponse.IsSuccessStatusCode)
-                    viewModel.CustomerOrders = await ordersResponse.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
+                var email = GetCurrentCustomerEmail();
+                if (!string.IsNullOrWhiteSpace(email))
+                {
+                    var ordersUrl = $"{SellerServiceUrl}/api/customerorder/by-customer?customerEmail={Uri.EscapeDataString(email)}";
+                    var ordersResponse = await httpClient.GetAsync(ordersUrl);
+                    if (ordersResponse.IsSuccessStatusCode)
+                        viewModel.CustomerOrders = await ordersResponse.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
+                }
             }
             else
             {
                 viewModel.Cart = cart;
                 viewModel.ShowCheckout = true;
-                viewModel.StatusMessage = $"Order could not be placed: {response.StatusCode}";
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = GetOrderErrorMessage(response.StatusCode, errorBody);
                 var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
                 if (blanketsResponse.IsSuccessStatusCode)
                     viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
@@ -430,14 +470,23 @@ public class HomeController : Controller
     {
         var httpClient = _httpClientFactory.CreateClient();
         var viewModel = new HomeViewModel();
+        var customerEmail = GetCurrentCustomerEmail();
+
+        if (string.IsNullOrWhiteSpace(customerEmail))
+        {
+            viewModel.StatusMessage = "Cannot load orders: no email associated with your account.";
+            viewModel.ActiveTab = "orders";
+            return View("Index", viewModel);
+        }
 
         try
         {
-            var response = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder");
+            var url = $"{SellerServiceUrl}/api/customerorder/by-customer?customerEmail={Uri.EscapeDataString(customerEmail)}";
+            var response = await httpClient.GetAsync(url);
             if (response.IsSuccessStatusCode)
             {
                 viewModel.CustomerOrders = await response.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
-                viewModel.StatusMessage = $"Loaded {viewModel.CustomerOrders.Count} customer orders";
+                viewModel.StatusMessage = $"Loaded {viewModel.CustomerOrders.Count} order(s)";
                 viewModel.ActiveTab = "orders";
             }
             else
@@ -549,18 +598,30 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [Authorize]
     public async Task<IActionResult> ViewOrder(int orderId)
     {
         var httpClient = _httpClientFactory.CreateClient();
         var viewModel = new HomeViewModel();
+        var customerEmail = GetCurrentCustomerEmail();
 
         try
         {
             var response = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder/{orderId}");
             if (response.IsSuccessStatusCode)
             {
-                viewModel.SelectedOrder = await response.Content.ReadFromJsonAsync<CustomerOrderModel>();
-                viewModel.StatusMessage = $"Loaded order {orderId} details";
+                var order = await response.Content.ReadFromJsonAsync<CustomerOrderModel>();
+                // Ensure the order belongs to the current customer
+                if (order != null && !string.IsNullOrWhiteSpace(customerEmail) &&
+                    string.Equals(order.CustomerEmail?.Trim(), customerEmail.Trim(), StringComparison.OrdinalIgnoreCase))
+                {
+                    viewModel.SelectedOrder = order;
+                    viewModel.StatusMessage = $"Loaded order {orderId} details";
+                }
+                else
+                {
+                    viewModel.StatusMessage = "Order not found or you do not have access to view it.";
+                }
             }
             else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
             {

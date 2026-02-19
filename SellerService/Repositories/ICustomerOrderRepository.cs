@@ -8,6 +8,7 @@ namespace SellerService.Repositories;
 public interface ICustomerOrderRepository
 {
     Task<IEnumerable<CustomerOrder>> GetAllAsync();
+    Task<IEnumerable<CustomerOrder>> GetByCustomerEmailAsync(string customerEmail);
     Task<CustomerOrder?> GetByIdAsync(int id);
     Task<CustomerOrder> AddAsync(CustomerOrder order);
     Task<CustomerOrder> UpdateAsync(CustomerOrder order);

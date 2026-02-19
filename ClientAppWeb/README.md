@@ -79,6 +79,11 @@ Open your browser and navigate to: **http://localhost:5006**
 - Check firewall settings
 - Ensure services are accessible via http://localhost
 
+### Order could not be placed
+- Start services in order: ManufacturerService (5001) → DistributorService (5002) → SellerService (5003).
+- Ensure SellerService database is writable (`ConnectionStrings:DefaultConnection` in SellerService `appsettings.json`).
+- Check `Services:SellerServiceUrl` in this app's `appsettings.json` (default http://localhost:5003). The status bar now shows the API error detail when the order fails.
+
 ### Browser Issues
 - Use a modern browser (Chrome, Firefox, Safari, Edge)
 - Clear browser cache if UI doesn't load correctly

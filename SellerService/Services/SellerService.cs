@@ -265,6 +265,22 @@ public class SellerService : ISellerService
         }
     }
 
+    public async Task<IEnumerable<DTOs.CustomerOrderDto>> GetCustomerOrdersByEmailAsync(string customerEmail)
+    {
+        if (string.IsNullOrWhiteSpace(customerEmail))
+            return Array.Empty<DTOs.CustomerOrderDto>();
+        try
+        {
+            var orders = await _orderRepository.GetByCustomerEmailAsync(customerEmail);
+            return orders.Select(MapToDto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving customer orders for email");
+            throw;
+        }
+    }
+
     public async Task<DTOs.CustomerOrderDto?> GetCustomerOrderByIdAsync(int id)
     {
         try

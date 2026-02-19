@@ -1,5 +1,6 @@
 using System.Net.Http.Json;
 using SellerService.DTOs;
+using SellerService.Exceptions;
 
 namespace SellerService.Services;
 
@@ -59,6 +60,16 @@ public class DistributorServiceClient : IDistributorServiceClient
                 Message = $"DistributorService returned status: {response.StatusCode}" 
             };
         }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "DistributorService unreachable when placing order");
+            throw new DownstreamServiceUnavailableException("DistributorService is temporarily unavailable. Please try again later.", ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Timeout or cancellation when placing order with DistributorService");
+            throw new DownstreamServiceUnavailableException("DistributorService did not respond in time. Please try again later.", ex);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception occurred while placing order with DistributorService");
@@ -108,6 +119,16 @@ public class DistributorServiceClient : IDistributorServiceClient
                 AvailableQuantity = 0,
                 Message = "Product not found in distributor inventory"
             };
+        }
+        catch (HttpRequestException ex)
+        {
+            _logger.LogError(ex, "DistributorService unreachable when checking availability");
+            throw new DownstreamServiceUnavailableException("DistributorService is temporarily unavailable. Please try again later.", ex);
+        }
+        catch (TaskCanceledException ex)
+        {
+            _logger.LogError(ex, "Timeout or cancellation when checking availability with DistributorService");
+            throw new DownstreamServiceUnavailableException("DistributorService did not respond in time. Please try again later.", ex);
         }
         catch (Exception ex)
         {

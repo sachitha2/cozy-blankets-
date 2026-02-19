@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SellerService.DTOs;
+using SellerService.Exceptions;
 using SellerService.Services;
 
 namespace SellerService.Controllers;
@@ -14,11 +15,13 @@ public class CustomerOrderController : ControllerBase
 {
     private readonly ISellerService _sellerService;
     private readonly ILogger<CustomerOrderController> _logger;
+    private readonly IHostEnvironment _env;
 
-    public CustomerOrderController(ISellerService sellerService, ILogger<CustomerOrderController> logger)
+    public CustomerOrderController(ISellerService sellerService, ILogger<CustomerOrderController> logger, IHostEnvironment env)
     {
         _sellerService = sellerService;
         _logger = logger;
+        _env = env;
     }
 
     /// <summary>
@@ -32,6 +35,7 @@ public class CustomerOrderController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(CustomerOrderResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status502BadGateway)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError)]
     public async Task<ActionResult<CustomerOrderResponseDto>> ProcessCustomerOrder([FromBody] CustomerOrderRequestDto request)
     {
@@ -65,15 +69,23 @@ public class CustomerOrderController : ControllerBase
             var response = await _sellerService.ProcessCustomerOrderAsync(request);
             return Ok(response);
         }
+        catch (DownstreamServiceUnavailableException ex)
+        {
+            _logger.LogWarning(ex, "Downstream service unavailable while processing customer order");
+            return StatusCode(502, new { error = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error processing customer order");
-            return StatusCode(500, new { error = "An error occurred while processing the customer order" });
+            var errorMessage = "An error occurred while processing the customer order";
+            if (_env.IsDevelopment())
+                return StatusCode(500, new { error = errorMessage, detail = ex.Message });
+            return StatusCode(500, new { error = errorMessage });
         }
     }
 
     /// <summary>
-    /// Get all customer orders
+    /// Get all customer orders (all customers; consider using by-customer for customer-facing UIs).
     /// </summary>
     /// <returns>List of all customer orders</returns>
     /// <response code="200">Returns the list of customer orders</response>
@@ -91,6 +103,34 @@ public class CustomerOrderController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving customer orders");
+            return StatusCode(500, new { error = "An error occurred while retrieving customer orders" });
+        }
+    }
+
+    /// <summary>
+    /// Get customer orders for a specific customer by email (for customer-facing "my orders" views).
+    /// </summary>
+    /// <param name="customerEmail">Customer email address</param>
+    /// <returns>List of orders for that customer</returns>
+    /// <response code="200">Returns the list of customer orders</response>
+    /// <response code="400">customerEmail is required</response>
+    /// <response code="500">Internal server error</response>
+    [HttpGet("by-customer")]
+    [ProducesResponseType(typeof(IEnumerable<CustomerOrderDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<IEnumerable<CustomerOrderDto>>> GetOrdersByCustomerEmail([FromQuery] string? customerEmail)
+    {
+        if (string.IsNullOrWhiteSpace(customerEmail))
+            return BadRequest(new { error = "customerEmail query parameter is required" });
+        try
+        {
+            var orders = await _sellerService.GetCustomerOrdersByEmailAsync(customerEmail.Trim());
+            return Ok(orders);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving customer orders for email");
             return StatusCode(500, new { error = "An error occurred while retrieving customer orders" });
         }
     }

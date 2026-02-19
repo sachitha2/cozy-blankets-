@@ -10,5 +10,6 @@ public interface ISellerService
     Task<CustomerOrderResponseDto> ProcessCustomerOrderAsync(CustomerOrderRequestDto request);
     Task<AvailabilityResponseDto> CheckAvailabilityAsync(int modelId);
     Task<IEnumerable<CustomerOrderDto>> GetAllCustomerOrdersAsync();
+    Task<IEnumerable<CustomerOrderDto>> GetCustomerOrdersByEmailAsync(string customerEmail);
     Task<CustomerOrderDto?> GetCustomerOrderByIdAsync(int id);
 }
