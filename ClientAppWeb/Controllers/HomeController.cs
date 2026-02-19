@@ -440,6 +440,35 @@ public class HomeController : Controller
 
     [HttpPost]
     [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> LoadCreateOrder()
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var response = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await response.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+                viewModel.StatusMessage = viewModel.Blankets.Any() ? "Add customer details and items, then click Create Order." : "No blankets in catalog.";
+                viewModel.ActiveTab = "create-order";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error loading catalog: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Seller")]
     public async Task<IActionResult> LoadSellerOrders()
     {
         var httpClient = _httpClientFactory.CreateClient();
