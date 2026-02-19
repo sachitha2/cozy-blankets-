@@ -1,0 +1,241 @@
+@{
+    ViewData["Title"] = "About Us - Cozy Comfort Blankets";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 16px; }
+        .auth-bar { margin-top: 12px; font-size: 14px; }
+        .auth-bar .auth-link { color: white; text-decoration: underline; margin: 0 6px; }
+        .auth-bar .btn-logout { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 8px; }
+        .auth-bar .btn-logout:hover { background: rgba(255,255,255,0.3); }
+        .content {
+            padding: 40px;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .section h2 {
+            color: #2c3e50;
+            font-size: 28px;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid #3498db;
+        }
+        .section p {
+            color: #555;
+            line-height: 1.8;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 30px;
+        }
+        .team-member {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .team-member h3 {
+            color: #2c3e50;
+            font-size: 20px;
+            margin-bottom: 8px;
+        }
+        .team-member .role {
+            color: #3498db;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .team-member p {
+            color: #666;
+            font-size: 14px;
+        }
+        .values-list {
+            list-style: none;
+            padding: 0;
+        }
+        .values-list li {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .values-list li strong {
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .btn-back {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .btn-back:hover {
+            background: #2980b9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>About Cozy Comfort Blankets</h1>
+            <p>Your trusted source for premium quality blankets</p>
+            <div class="auth-bar">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <span>Hello, @User.Identity.Name</span>
+                    <form method="post" asp-action="Logout" asp-controller="Account" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-logout">Logout</button>
+                    </form>
+                }
+                else
+                {
+                    <a href="@Url.Action("Login", "Account")" class="auth-link">Login</a>
+                    <span style="color: rgba(255,255,255,0.7);">|</span>
+                    <a href="@Url.Action("Register", "Account")" class="auth-link">Register</a>
+                }
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="section">
+                <h2>Our Mission</h2>
+                <p>
+                    At Cozy Comfort Blankets, our mission is to provide the highest quality blankets that bring warmth, comfort, and style to every home. 
+                    We believe that everyone deserves to experience the luxury of premium materials and exceptional craftsmanship, which is why we've dedicated 
+                    ourselves to creating blankets that are not only beautiful but also durable and sustainable.
+                </p>
+                <p>
+                    Since our founding, we've been committed to sourcing the finest materials and working with skilled artisans to create products that 
+                    exceed our customers' expectations. We're not just selling blankets—we're providing comfort, warmth, and a sense of home.
+                </p>
+            </div>
+
+            <div class="section">
+                <h2>Our History</h2>
+                <p>
+                    Cozy Comfort Blankets was founded in 2015 by a group of passionate individuals who shared a vision of creating premium quality blankets 
+                    accessible to everyone. What started as a small family business has grown into a trusted brand known for quality, reliability, and customer satisfaction.
+                </p>
+                <p>
+                    Over the years, we've expanded our product line to include a wide variety of blanket styles, materials, and sizes. From luxurious wool blankets 
+                    to soft cotton throws, we've carefully curated our collection to meet diverse needs and preferences. Our commitment to quality and customer service 
+                    has earned us the trust of thousands of satisfied customers across the country.
+                </p>
+                <p>
+                    Today, we continue to innovate and improve, always striving to bring you the best products and shopping experience possible.
+                </p>
+            </div>
+
+            <div class="section">
+                <h2>Our Team</h2>
+                <p>Meet the dedicated professionals behind Cozy Comfort Blankets:</p>
+                <div class="team-grid">
+                    <div class="team-member">
+                        <h3>Sarah Johnson</h3>
+                        <div class="role">Founder & CEO</div>
+                        <p>With over 15 years of experience in the textile industry, Sarah leads our company with passion and vision.</p>
+                    </div>
+                    <div class="team-member">
+                        <h3>Michael Chen</h3>
+                        <div class="role">Head of Manufacturing</div>
+                        <p>Michael ensures every blanket meets our strict quality standards through meticulous oversight of production.</p>
+                    </div>
+                    <div class="team-member">
+                        <h3>Emily Rodriguez</h3>
+                        <div class="role">Customer Relations Manager</div>
+                        <p>Emily is dedicated to ensuring every customer has an exceptional experience with our products and service.</p>
+                    </div>
+                    <div class="team-member">
+                        <h3>David Thompson</h3>
+                        <div class="role">Quality Assurance Director</div>
+                        <p>David's attention to detail guarantees that only the finest blankets reach our customers.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2>Our Values</h2>
+                <ul class="values-list">
+                    <li>
+                        <strong>Quality First</strong>
+                        We never compromise on quality. Every blanket undergoes rigorous testing to ensure it meets our high standards.
+                    </li>
+                    <li>
+                        <strong>Customer Satisfaction</strong>
+                        Your happiness is our priority. We're committed to providing exceptional service and support throughout your journey with us.
+                    </li>
+                    <li>
+                        <strong>Sustainability</strong>
+                        We care about our planet. We're committed to sustainable practices and environmentally responsible sourcing.
+                    </li>
+                    <li>
+                        <strong>Innovation</strong>
+                        We continuously seek new ways to improve our products and processes, staying ahead of industry trends.
+                    </li>
+                    <li>
+                        <strong>Integrity</strong>
+                        We conduct our business with honesty, transparency, and respect for all our stakeholders.
+                    </li>
+                </ul>
+            </div>
+
+            <div class="section">
+                <h2>Contact Us</h2>
+                <p>
+                    Have questions or want to learn more? We'd love to hear from you!
+                </p>
+                <p>
+                    <strong>Email:</strong> info@cozycomfortblankets.com<br>
+                    <strong>Phone:</strong> 1-800-COZY-BLK (1-800-269-9255)<br>
+                    <strong>Address:</strong> 123 Comfort Street, Warm City, WC 12345
+                </p>
+                <p>
+                    Or visit our <a href="@Url.Action("Contact", "Home")" style="color: #3498db; text-decoration: underline;">Contact Us</a> page to send us a message.
+                </p>
+            </div>
+
+            <a href="@Url.Action("Index", "Home")" class="btn-back">← Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>

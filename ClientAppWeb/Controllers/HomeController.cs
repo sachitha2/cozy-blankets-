@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Json;
 using ClientAppWeb.Models;
+using ClientAppWeb.Data;
 
 namespace ClientAppWeb.Controllers;
 
@@ -100,6 +101,65 @@ public class HomeController : Controller
         }
 
         return View(viewModel);
+    }
+
+    /// <summary>
+    /// About Us page: company information and team details.
+    /// </summary>
+    [HttpGet]
+    public IActionResult About()
+    {
+        return View();
+    }
+
+    /// <summary>
+    /// Contact Us page: display contact form.
+    /// </summary>
+    [HttpGet]
+    public IActionResult Contact()
+    {
+        return View(new ContactViewModel());
+    }
+
+    /// <summary>
+    /// Handle contact form submission.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Contact(ContactViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        try
+        {
+            var submission = new ContactSubmission
+            {
+                Name = model.Name,
+                Email = model.Email,
+                Phone = model.Phone,
+                Subject = model.Subject,
+                Message = model.Message,
+                SubmittedAt = DateTime.UtcNow,
+                IsRead = false
+            };
+
+            using var scope = HttpContext.RequestServices.CreateScope();
+            var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            await dbContext.ContactSubmissions.AddAsync(submission);
+            await dbContext.SaveChangesAsync();
+
+            model.StatusMessage = "Thank you for contacting us! We'll get back to you soon.";
+            ModelState.Clear();
+            return View(new ContactViewModel { StatusMessage = model.StatusMessage });
+        }
+        catch (Exception ex)
+        {
+            model.ErrorMessage = "An error occurred while submitting your message. Please try again later.";
+            return View(model);
+        }
     }
 
     /// <summary>

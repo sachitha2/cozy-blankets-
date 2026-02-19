@@ -1,0 +1,258 @@
+@model List<ClientAppWeb.Models.ContactSubmission>
+@{
+    ViewData["Title"] = "Contact Submissions - Admin Panel";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 32px; margin-bottom: 10px; }
+        .header p { opacity: 0.9; font-size: 16px; }
+        .auth-bar { margin-top: 12px; font-size: 14px; }
+        .auth-bar .auth-link { color: white; text-decoration: underline; margin: 0 6px; }
+        .auth-bar .btn-logout { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5); padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; margin-left: 8px; }
+        .auth-bar .btn-logout:hover { background: rgba(255,255,255,0.3); }
+        .content {
+            padding: 40px;
+        }
+        .submissions-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .submissions-header h2 {
+            color: #2c3e50;
+            font-size: 28px;
+        }
+        .submissions-count {
+            color: #7f8c8d;
+            font-size: 16px;
+        }
+        .submissions-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .submissions-table thead {
+            background: #34495e;
+            color: white;
+        }
+        .submissions-table th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .submissions-table tbody tr {
+            border-bottom: 1px solid #dee2e6;
+            transition: background 0.2s;
+        }
+        .submissions-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+        .submissions-table tbody tr:last-child {
+            border-bottom: none;
+        }
+        .submissions-table td {
+            padding: 15px;
+            color: #555;
+            font-size: 14px;
+        }
+        .submission-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        .submission-email {
+            color: #3498db;
+        }
+        .submission-subject {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        .submission-message {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            color: #666;
+        }
+        .submission-date {
+            color: #7f8c8d;
+            font-size: 13px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-read {
+            background: #d4edda;
+            color: #155724;
+        }
+        .badge-unread {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .no-submissions {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        .no-submissions h3 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #95a5a6;
+        }
+        .btn-back {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 24px;
+            background: #3498db;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        .btn-back:hover {
+            background: #2980b9;
+        }
+        .message-expand {
+            cursor: pointer;
+            color: #3498db;
+            text-decoration: underline;
+        }
+        .message-full {
+            max-width: 500px;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Admin Panel - Contact Submissions</h1>
+            <p>View and manage customer contact form submissions</p>
+            <div class="auth-bar">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <span>Hello, @User.Identity.Name</span>
+                    <form method="post" asp-action="Logout" asp-controller="Account" style="display:inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-logout">Logout</button>
+                    </form>
+                }
+                else
+                {
+                    <a href="@Url.Action("Login", "Account")" class="auth-link">Login</a>
+                    <span style="color: rgba(255,255,255,0.7);">|</span>
+                    <a href="@Url.Action("Register", "Account")" class="auth-link">Register</a>
+                }
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="submissions-header">
+                <h2>Contact Submissions</h2>
+                <div class="submissions-count">
+                    Total: @Model.Count | 
+                    Unread: @Model.Count(s => !s.IsRead)
+                </div>
+            </div>
+
+            @if (Model == null || !Model.Any())
+            {
+                <div class="no-submissions">
+                    <h3>No Submissions Yet</h3>
+                    <p>Contact form submissions will appear here once customers start submitting inquiries.</p>
+                </div>
+            }
+            else
+            {
+                <table class="submissions-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Subject</th>
+                            <th>Message</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var submission in Model)
+                        {
+                            <tr>
+                                <td class="submission-date">
+                                    @submission.SubmittedAt.ToString("MMM dd, yyyy<br/>hh:mm tt", System.Globalization.CultureInfo.InvariantCulture)
+                                </td>
+                                <td class="submission-name">@submission.Name</td>
+                                <td class="submission-email">@submission.Email</td>
+                                <td>@(submission.Phone ?? "N/A")</td>
+                                <td class="submission-subject">@submission.Subject</td>
+                                <td class="submission-message message-full" title="@submission.Message">
+                                    @if (submission.Message.Length > 100)
+                                    {
+                                        <span>@submission.Message.Substring(0, 100)...</span>
+                                    }
+                                    else
+                                    {
+                                        @submission.Message
+                                    }
+                                </td>
+                                <td>
+                                    @if (submission.IsRead)
+                                    {
+                                        <span class="badge badge-read">Read</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-unread">Unread</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+
+            <a href="@Url.Action("Index", "Home")" class="btn-back">← Back to Home</a>
+        </div>
+    </div>
+</body>
+</html>
