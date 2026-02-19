@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Polly;
+using Polly.Extensions.Http;
 using Serilog;
 using SellerService.Data;
 using SellerService.Repositories;
@@ -40,6 +42,10 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<SellerDbContext>(options =>
     options.UseSqlite(connectionString));
 
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<SellerDbContext>("database");
+
 // Register Repositories (Scoped - one per HTTP request)
 builder.Services.AddScoped<ICustomerOrderRepository, CustomerOrderRepository>();
 builder.Services.AddScoped<ISellerInventoryRepository, SellerInventoryRepository>();
@@ -47,13 +53,19 @@ builder.Services.AddScoped<ISellerInventoryRepository, SellerInventoryRepository
 // Register Services (Scoped - one per HTTP request)
 builder.Services.AddScoped<ISellerService, SellerService.Services.SellerService>();
 
-// Register HTTP Client for DistributorService communication
+// Register HTTP Client for DistributorService communication with Polly retry
 builder.Services.AddHttpClient<IDistributorServiceClient, DistributorServiceClient>(client =>
 {
     var baseUrl = builder.Configuration["DistributorService:BaseUrl"] ?? "http://localhost:5002";
     client.BaseAddress = new Uri(baseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddPolicyHandler(GetRetryPolicy());
+
+static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>
+    HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
 // Add CORS for inter-service communication
 builder.Services.AddCors(options =>
@@ -104,16 +116,15 @@ if (app.Environment.IsDevelopment())
     });
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseHttpsRedirection();
-
 app.UseCors("AllowAll");
-
-// Add custom exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 Log.Information("Seller Service starting up");
 

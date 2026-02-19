@@ -1,0 +1,144 @@
+@model ClientAppWeb.Models.BlanketModel
+@{
+    ViewData["Title"] = Model.ModelName + " - Cozy Comfort";
+    // First image = main image. Order: ImageUrl (if set) then AdditionalImageUrls.
+    var allImages = new List<string>();
+    if (!string.IsNullOrEmpty(Model.ImageUrl))
+        allImages.Add(Model.ImageUrl);
+    allImages.AddRange(Model.AdditionalImageUrls ?? new List<string>());
+    if (allImages.Count == 0)
+        allImages.Add(""); // placeholder
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); overflow: hidden; }
+        .header { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); color: white; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; }
+        .header a { color: white; text-decoration: none; font-weight: 600; }
+        .header a:hover { text-decoration: underline; }
+        .content { padding: 32px; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; align-items: start; }
+        @@media (max-width: 700px) { .detail-grid { grid-template-columns: 1fr; } }
+        .gallery-main { aspect-ratio: 1; background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%); border-radius: 12px; overflow: hidden; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; color: #6c757d; }
+        .gallery-main img { width: 100%; height: 100%; object-fit: cover; }
+        .gallery-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+        .gallery-thumbs a { width: 72px; height: 72px; border-radius: 8px; overflow: hidden; border: 2px solid #dee2e6; display: block; }
+        .gallery-thumbs a:hover, .gallery-thumbs a.active { border-color: #3498db; }
+        .gallery-thumbs img { width: 100%; height: 100%; object-fit: cover; }
+        .gallery-thumbs .placeholder { background: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #6c757d; text-align: center; padding: 4px; }
+        .info h1 { font-size: 28px; color: #2c3e50; margin-bottom: 8px; }
+        .info .price { font-size: 26px; color: #27ae60; font-weight: 700; margin-bottom: 16px; }
+        .info .meta { font-size: 14px; color: #6c757d; margin-bottom: 16px; }
+        .info .description { font-size: 15px; line-height: 1.6; color: #333; margin-bottom: 24px; }
+        .add-to-cart { display: flex; gap: 12px; align-items: center; }
+        .add-to-cart input[type="number"] { width: 70px; padding: 12px; border: 1px solid #dee2e6; border-radius: 8px; font-size: 16px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; }
+        .btn-success { background: #27ae60; color: white; }
+        .btn-success:hover { background: #229954; }
+        .btn-default { background: #95a5a6; color: white; text-decoration: none; display: inline-block; }
+        .btn-default:hover { background: #7f8c8d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="@Url.Action("Index")">← Back to shop</a>
+        </div>
+        <div class="content">
+            @if (TempData["StatusMessage"] != null)
+            {
+                <p style="margin-bottom: 16px; padding: 12px; background: #d4edda; color: #155724; border-radius: 8px;">@TempData["StatusMessage"]</p>
+            }
+            <div class="detail-grid">
+                <div class="gallery">
+                    <div class="gallery-main" id="mainImage">
+                        @if (allImages.Count > 0 && !string.IsNullOrEmpty(allImages[0]))
+                        {
+                            <img src="@allImages[0]" alt="@Model.ModelName" id="mainImageImg" />
+                        }
+                        else
+                        {
+                            <span>No image</span>
+                        }
+                    </div>
+                    @if (allImages.Count > 1)
+                    {
+                        <div class="gallery-thumbs">
+                            @for (var i = 0; i < allImages.Count; i++)
+                            {
+                                var url = allImages[i];
+                                <a href="#" class="thumb @(i == 0 ? "active" : "")" data-url="@url" onclick="setMainImage('@url.Replace("'", "\\'")'); return false;">
+                                    @if (!string.IsNullOrEmpty(url))
+                                    {
+                                        <img src="@url" alt="View @(i + 1)" />
+                                    }
+                                    else
+                                    {
+                                        <span class="placeholder">No image</span>
+                                    }
+                                </a>
+                            }
+                        </div>
+                    }
+                </div>
+                <div class="info">
+                    <h1>@Model.ModelName</h1>
+                    <div class="price">$@Model.UnitPrice.ToString("F2")</div>
+                    <div class="meta"><strong>Material:</strong> @Model.Material</div>
+                    <div class="description">@Model.Description</div>
+                    <form method="post" asp-action="AddToCart" asp-controller="Home" class="add-to-cart">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="blanketId" value="@Model.Id" />
+                        <input type="number" name="quantity" value="1" min="1" max="99" />
+                        <button type="submit" class="btn btn-success">Add to cart</button>
+                    </form>
+                    <p style="margin-top: 20px;">
+                        <a href="@Url.Action("Index")" class="btn btn-default">Continue shopping</a>
+                    </p>
+                    <div style="margin-top: 28px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+                        <h4 style="margin-bottom: 12px; font-size: 16px;">Upload image to gallery</h4>
+                        <p style="font-size: 13px; color: #555; margin-bottom: 12px;">The first image in the gallery is used as the main image.</p>
+                        <form method="post" asp-action="UploadAdditionalImage" enctype="multipart/form-data">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="blanketId" value="@Model.Id" />
+                            <input type="file" name="imageFile" accept=".jpg,.jpeg,.png,.gif,.webp" style="margin-bottom: 8px;" />
+                            <button type="submit" class="btn btn-default">Upload image to gallery</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        function setMainImage(url) {
+            var main = document.getElementById('mainImageImg');
+            var container = document.getElementById('mainImage');
+            document.querySelectorAll('.gallery-thumbs .thumb').forEach(function(t) { t.classList.remove('active'); });
+            if (event && event.target && event.target.closest) event.target.closest('.thumb').classList.add('active');
+            if (container) {
+                var span = container.querySelector('span');
+                if (url) {
+                    if (!main) {
+                        main = document.createElement('img');
+                        main.id = 'mainImageImg';
+                        main.alt = '@Model.ModelName';
+                        container.innerHTML = '';
+                        container.appendChild(main);
+                    }
+                    main.src = url;
+                    main.style.display = '';
+                    if (span) span.style.display = 'none';
+                } else {
+                    if (span) { span.textContent = 'No image'; span.style.display = ''; }
+                    if (main) main.style.display = 'none';
+                }
+            }
+        }
+    </script>
+</body>
+</html>

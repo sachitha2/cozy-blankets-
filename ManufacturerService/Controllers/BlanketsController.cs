@@ -82,6 +82,85 @@ public class BlanketsController : ControllerBase
     }
 
     /// <summary>
+    /// Get a single blanket by ID
+    /// </summary>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(typeof(BlanketDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BlanketDto>> GetBlanketById(int id)
+    {
+        try
+        {
+            if (id <= 0)
+                return BadRequest(new { error = "Invalid blanket ID" });
+            var blanket = await _blanketService.GetBlanketByIdAsync(id);
+            if (blanket == null)
+                return NotFound(new { error = $"Blanket with ID {id} not found" });
+            return Ok(blanket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving blanket with Id: {Id}", id);
+            return StatusCode(500, new { error = "An error occurred while retrieving the blanket" });
+        }
+    }
+
+    /// <summary>
+    /// Update blanket image URL (for storefront display)
+    /// </summary>
+    [HttpPatch("{id:int}/image")]
+    [ProducesResponseType(typeof(BlanketDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BlanketDto>> UpdateImage(int id, [FromBody] UpdateBlanketImageRequest request)
+    {
+        try
+        {
+            if (id <= 0)
+                return BadRequest(new { error = "Invalid blanket ID" });
+            var blanket = await _blanketService.UpdateImageUrlAsync(id, request?.ImageUrl);
+            if (blanket == null)
+                return NotFound(new { error = $"Blanket with ID {id} not found" });
+            return Ok(blanket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating image for blanket Id: {Id}", id);
+            return StatusCode(500, new { error = "An error occurred while updating the image" });
+        }
+    }
+
+    /// <summary>
+    /// Add an additional image URL to the product gallery
+    /// </summary>
+    [HttpPost("{id:int}/images")]
+    [ProducesResponseType(typeof(BlanketDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BlanketDto>> AddAdditionalImage(int id, [FromBody] AddImageRequest request)
+    {
+        try
+        {
+            if (id <= 0)
+                return BadRequest(new { error = "Invalid blanket ID" });
+            if (request == null || string.IsNullOrWhiteSpace(request.ImageUrl))
+                return BadRequest(new { error = "ImageUrl is required" });
+            var blanket = await _blanketService.AddAdditionalImageUrlAsync(id, request.ImageUrl.Trim());
+            if (blanket == null)
+                return NotFound(new { error = $"Blanket with ID {id} not found" });
+            return Ok(blanket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding image for blanket Id: {Id}", id);
+            return StatusCode(500, new { error = "An error occurred while adding the image" });
+        }
+    }
+
+    /// <summary>
     /// Process a production request
     /// </summary>
     /// <param name="request">Production request details</param>

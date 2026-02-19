@@ -5,12 +5,14 @@ Cozy Comfort is a Service-Oriented Computing (SOC) based system for blanket supp
 
 ## 📚 Documentation
 
-Comprehensive documentation is available in the [`docs/`](./docs/) directory:
+Documentation is in the [`docs/`](./docs/) directory:
 
+- **[Workflows](./docs/WORKFLOWS.md)** - Order flow overview and diagram (single source of truth)
+- **[Business Logic](./docs/BUSINESS_LOGIC.md)** - End-to-end flow and implementation mapping
 - **[Design Diagrams](./docs/DESIGN_DIAGRAMS.md)** - Architecture, sequence, class, and ER diagrams
-- **[Architecture Comparison](./docs/ARCHITECTURE_COMPARISON.md)** - Monolithic vs SOA analysis (Task 1)
-- **[Testing Documentation](./docs/TESTING_DOCUMENTATION.md)** - Test cases, debugging process, results (Task 3)
-- **[Deployment Guide](./docs/DEPLOYMENT.md)** - Docker, Kubernetes, cloud deployment (Task 4)
+- **[Architecture: Monolithic vs SOA](./docs/ARCHITECTURE_COMPARISON.md)** - Comparison and justification
+- **[Testing](./docs/TESTING_DOCUMENTATION.md)** - Test strategy, cases, and results
+- **[Deployment](./docs/DEPLOYMENT.md)** - Docker, Kubernetes, and cloud deployment
 
 ## System Architecture
 
@@ -446,15 +448,18 @@ To stop services:
 ## API Endpoints Summary
 
 ### ManufacturerService (Port 5001)
+- `GET /health` - Health check
 - `GET /api/blankets` - Get all blanket models
 - `GET /api/blankets/stock/{modelId}` - Get stock information
 - `POST /api/blankets/produce` - Check production capacity
 
 ### DistributorService (Port 5002)
+- `GET /health` - Health check
 - `GET /api/inventory` - Get distributor inventory
 - `POST /api/order` - Process seller order
 
 ### SellerService (Port 5003)
+- `GET /health` - Health check
 - `POST /api/customerorder` - Process customer order
 - `GET /api/availability/{modelId}` - Check product availability
 
@@ -613,26 +618,18 @@ Each service creates its own SQLite database:
 
 ## Configuration
 
-### Service URLs
-Update service URLs in `appsettings.json` for each service:
+### Backend service URLs (APIs)
+Update upstream URLs in `appsettings.json` for each service:
 
-**DistributorService/appsettings.json:**
-```json
-{
-  "ManufacturerService": {
-    "BaseUrl": "http://localhost:5001"
-  }
-}
-```
+**DistributorService:** `ManufacturerService:BaseUrl` (default `http://localhost:5001`)  
+**SellerService:** `DistributorService:BaseUrl` (default `http://localhost:5002`)
 
-**SellerService/appsettings.json:**
-```json
-{
-  "DistributorService": {
-    "BaseUrl": "http://localhost:5002"
-  }
-}
-```
+### Client applications
+Backend URLs are configurable so clients work against local or Docker:
+
+- **ClientAppWeb**: `appsettings.json` or environment (`Services:ManufacturerServiceUrl`, etc.). In Docker, set `Services__ManufacturerServiceUrl`, `Services__DistributorServiceUrl`, `Services__SellerServiceUrl`.
+- **ClientApp / ClientAppDesktop**: Environment variables `Services__ManufacturerServiceUrl`, `Services__DistributorServiceUrl`, `Services__SellerServiceUrl` (defaults: localhost:5001, 5002, 5003).
+- See [.env.example](.env.example) for a list of variables.
 
 ## Design Patterns Used
 
@@ -790,6 +787,3 @@ lsof -i :5001
 netstat -ano | findstr :5001
 ```
 
-## License
-
-This project is part of an academic assessment for Service-Oriented Computing.

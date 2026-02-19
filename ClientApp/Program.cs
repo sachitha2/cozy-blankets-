@@ -10,9 +10,9 @@ namespace ClientApp;
 class Program
 {
     private static readonly HttpClient httpClient = new HttpClient();
-    private const string ManufacturerServiceUrl = "http://localhost:5001";
-    private const string DistributorServiceUrl = "http://localhost:5002";
-    private const string SellerServiceUrl = "http://localhost:5003";
+    private static string ManufacturerServiceUrl => Environment.GetEnvironmentVariable("Services__ManufacturerServiceUrl") ?? "http://localhost:5001";
+    private static string DistributorServiceUrl => Environment.GetEnvironmentVariable("Services__DistributorServiceUrl") ?? "http://localhost:5002";
+    private static string SellerServiceUrl => Environment.GetEnvironmentVariable("Services__SellerServiceUrl") ?? "http://localhost:5003";
 
     static async Task Main(string[] args)
     {

@@ -3,6 +3,8 @@
 ## Overview
 DistributorService is part of the Cozy Comfort Service-Oriented Architecture (SOA) system. It acts as an intermediary between the Manufacturer and Sellers, managing distributor inventory and processing orders from sellers.
 
+For end-to-end order flow, see [Workflows](../docs/WORKFLOWS.md).
+
 ## Architecture
 This service follows **Clean Architecture** principles with the following layers:
 

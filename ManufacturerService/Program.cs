@@ -40,6 +40,10 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ManufacturerDbContext>(options =>
     options.UseSqlite(connectionString));
 
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<ManufacturerDbContext>("database");
+
 // Register Repositories (Scoped - one per HTTP request)
 builder.Services.AddScoped<IBlanketRepository, BlanketRepository>();
 builder.Services.AddScoped<IStockRepository, StockRepository>();
@@ -88,16 +92,15 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseHttpsRedirection();
-
 app.UseCors("AllowAll");
-
-// Add custom exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 Log.Information("Manufacturer Service starting up");
 

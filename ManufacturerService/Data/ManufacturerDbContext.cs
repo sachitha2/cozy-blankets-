@@ -30,6 +30,8 @@ public class ManufacturerDbContext : DbContext
             entity.Property(e => e.Material).IsRequired().HasMaxLength(100);
             entity.Property(e => e.Description).HasMaxLength(1000);
             entity.Property(e => e.UnitPrice).HasColumnType("REAL");
+            entity.Property(e => e.ImageUrl).HasMaxLength(500);
+            entity.Property(e => e.AdditionalImageUrlsJson).HasMaxLength(2000);
             entity.HasIndex(e => e.ModelName).IsUnique();
         });
 

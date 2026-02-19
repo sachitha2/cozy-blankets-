@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ManufacturerService.Models;
 
 namespace ManufacturerService.Data;
@@ -7,10 +8,37 @@ namespace ManufacturerService.Data;
 /// </summary>
 public static class DatabaseSeeder
 {
+    /// <summary>
+    /// Add columns to Blankets table if they were added in a later version (existing DBs).
+    /// </summary>
+    private static void EnsureBlanketColumns(ManufacturerDbContext context)
+    {
+        try
+        {
+            context.Database.ExecuteSqlRaw("ALTER TABLE Blankets ADD COLUMN ImageUrl TEXT");
+        }
+        catch
+        {
+            /* Column already exists */
+        }
+
+        try
+        {
+            context.Database.ExecuteSqlRaw("ALTER TABLE Blankets ADD COLUMN AdditionalImageUrlsJson TEXT");
+        }
+        catch
+        {
+            /* Column already exists */
+        }
+    }
+
     public static void SeedData(ManufacturerDbContext context)
     {
         // Ensure database is created
         context.Database.EnsureCreated();
+
+        // Add new columns to existing databases (no-op if already present)
+        EnsureBlanketColumns(context);
 
         // Check if data already exists
         if (context.Blankets.Any())

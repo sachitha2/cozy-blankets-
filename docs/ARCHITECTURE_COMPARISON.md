@@ -1,4 +1,4 @@
-# Task 1: Architecture Comparison - Monolithic vs Service-Oriented Architecture
+# Architecture: Monolithic vs Service-Oriented Architecture
 
 ## Executive Summary
 

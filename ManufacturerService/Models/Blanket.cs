@@ -10,6 +10,9 @@ public class Blanket
     public string Material { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
+    public string? ImageUrl { get; set; }
+    /// <summary>JSON array of additional image URLs for the product gallery.</summary>
+    public string? AdditionalImageUrlsJson { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     

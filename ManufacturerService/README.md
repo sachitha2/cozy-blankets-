@@ -3,6 +3,8 @@
 ## Overview
 ManufacturerService is part of the Cozy Comfort Service-Oriented Architecture (SOA) system. It manages blanket models, stock levels, production capacity, and lead time information for the manufacturer.
 
+For end-to-end order flow, see [Workflows](../docs/WORKFLOWS.md).
+
 ## Architecture
 This service follows **Clean Architecture** principles with the following layers:
 

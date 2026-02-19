@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ManufacturerService.DTOs;
 using ManufacturerService.Models;
 using ManufacturerService.Repositories;
@@ -90,6 +91,25 @@ public class BlanketService : IBlanketService
         }
     }
 
+    public async Task<BlanketDto?> UpdateImageUrlAsync(int id, string? imageUrl)
+    {
+        try
+        {
+            var blanket = await _blanketRepository.GetByIdAsync(id);
+            if (blanket == null)
+                return null;
+            blanket.ImageUrl = imageUrl;
+            blanket.UpdatedAt = DateTime.UtcNow;
+            await _blanketRepository.UpdateAsync(blanket);
+            return MapToDto(blanket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating image URL for blanket Id: {Id}", id);
+            throw;
+        }
+    }
+
     public async Task<ProductionResponseDto> ProcessProductionRequestAsync(ProductionRequestDto request)
     {
         try
@@ -169,6 +189,43 @@ public class BlanketService : IBlanketService
         }
     }
 
+    public async Task<BlanketDto?> AddAdditionalImageUrlAsync(int id, string imageUrl)
+    {
+        try
+        {
+            var blanket = await _blanketRepository.GetByIdAsync(id);
+            if (blanket == null)
+                return null;
+            var list = DeserializeImageUrls(blanket.AdditionalImageUrlsJson);
+            if (!string.IsNullOrWhiteSpace(imageUrl) && !list.Contains(imageUrl))
+            {
+                list.Add(imageUrl);
+                blanket.AdditionalImageUrlsJson = JsonSerializer.Serialize(list);
+                if (string.IsNullOrEmpty(blanket.ImageUrl))
+                    blanket.ImageUrl = imageUrl;
+                blanket.UpdatedAt = DateTime.UtcNow;
+                await _blanketRepository.UpdateAsync(blanket);
+            }
+            return MapToDto(blanket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding additional image for blanket Id: {Id}", id);
+            throw;
+        }
+    }
+
+    private static List<string> DeserializeImageUrls(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            return new List<string>();
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json) ?? new List<string>();
+        }
+        catch { return new List<string>(); }
+    }
+
     private static BlanketDto MapToDto(Blanket blanket)
     {
         return new BlanketDto
@@ -178,6 +235,8 @@ public class BlanketService : IBlanketService
             Material = blanket.Material,
             Description = blanket.Description,
             UnitPrice = blanket.UnitPrice,
+            ImageUrl = blanket.ImageUrl,
+            AdditionalImageUrls = DeserializeImageUrls(blanket.AdditionalImageUrlsJson),
             CreatedAt = blanket.CreatedAt
         };
     }

@@ -1,50 +1,20 @@
 # Cozy Comfort - Documentation
 
-This directory contains all documentation for the Cozy Comfort Service-Oriented Architecture system.
+This directory contains architecture, workflow, and operations documentation for the Cozy Comfort system.
 
-## Documentation Files
+## Documentation index
 
-1. **[DESIGN_DIAGRAMS.md](./DESIGN_DIAGRAMS.md)**
-   - System architecture diagrams
-   - Sequence diagrams
-   - Class diagrams
-   - Database ER diagrams
-   - Component diagrams
+| Document | Description |
+|----------|-------------|
+| [WORKFLOWS.md](./WORKFLOWS.md) | Order flow overview and diagram (single source of truth) |
+| [BUSINESS_LOGIC.md](./BUSINESS_LOGIC.md) | End-to-end flow and implementation mapping to business rules |
+| [DESIGN_DIAGRAMS.md](./DESIGN_DIAGRAMS.md) | System architecture, sequence, class, and ER diagrams |
+| [ARCHITECTURE_COMPARISON.md](./ARCHITECTURE_COMPARISON.md) | Monolithic vs SOA comparison and justification |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Traditional server, Docker, Kubernetes, and cloud deployment |
+| [TESTING_DOCUMENTATION.md](./TESTING_DOCUMENTATION.md) | Testing strategy, unit/integration tests, and debugging |
 
-2. **[DEPLOYMENT.md](./DEPLOYMENT.md)**
-   - Traditional server deployment
-   - Docker deployment
-   - Kubernetes deployment
-   - Cloud platform deployment
-   - Comparison of deployment methods
+## Quick links
 
-3. **[ARCHITECTURE_COMPARISON.md](./ARCHITECTURE_COMPARISON.md)**
-   - Task 1: Monolithic vs SOA comparison
-   - Maintainability analysis
-   - Scalability analysis
-   - Justification for SOA selection
-
-4. **[TESTING_DOCUMENTATION.md](./TESTING_DOCUMENTATION.md)**
-   - Testing strategy
-   - Unit tests
-   - Integration tests
-   - Manual testing scenarios
-   - Debugging process
-   - Test results
-
-## Quick Links
-
-- [Main README](../README.md) - Project overview and setup
-- [Design Diagrams](./DESIGN_DIAGRAMS.md) - Visual architecture documentation
-- [Deployment Guide](./DEPLOYMENT.md) - How to deploy the system
-- [Architecture Comparison](./ARCHITECTURE_COMPARISON.md) - Monolithic vs SOA analysis
-- [Testing Documentation](./TESTING_DOCUMENTATION.md) - Test cases and results
-
-## Assessment Deliverables
-
-This documentation addresses all assessment requirements:
-
-✅ **Task 1**: Architecture comparison (ARCHITECTURE_COMPARISON.md)  
-✅ **Task 2**: Design diagrams (DESIGN_DIAGRAMS.md)  
-✅ **Task 3**: Testing documentation (TESTING_DOCUMENTATION.md)  
-✅ **Task 4**: Deployment techniques (DEPLOYMENT.md)  
+- [Main README](../README.md) – Project overview and setup
+- [Workflows](./WORKFLOWS.md) – How orders flow through the system
+- [Deployment Guide](./DEPLOYMENT.md) – How to deploy

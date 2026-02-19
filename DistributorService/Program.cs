@@ -1,4 +1,6 @@
 using Microsoft.EntityFrameworkCore;
+using Polly;
+using Polly.Extensions.Http;
 using Serilog;
 using DistributorService.Data;
 using DistributorService.Repositories;
@@ -40,6 +42,10 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<DistributorDbContext>(options =>
     options.UseSqlite(connectionString));
 
+// Health checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<DistributorDbContext>("database");
+
 // Register Repositories (Scoped - one per HTTP request)
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
@@ -47,13 +53,19 @@ builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 // Register Services (Scoped - one per HTTP request)
 builder.Services.AddScoped<IDistributorService, DistributorService.Services.DistributorService>();
 
-// Register HTTP Client for ManufacturerService communication
+// Register HTTP Client for ManufacturerService communication with Polly retry
 builder.Services.AddHttpClient<IManufacturerServiceClient, ManufacturerServiceClient>(client =>
 {
-        var baseUrl = builder.Configuration["ManufacturerService:BaseUrl"] ?? "http://localhost:5001";
+    var baseUrl = builder.Configuration["ManufacturerService:BaseUrl"] ?? "http://localhost:5001";
     client.BaseAddress = new Uri(baseUrl);
     client.Timeout = TimeSpan.FromSeconds(30);
-});
+})
+.AddPolicyHandler(GetRetryPolicy());
+
+static IAsyncPolicy<HttpResponseMessage> GetRetryPolicy() =>
+    HttpPolicyExtensions
+        .HandleTransientHttpError()
+        .WaitAndRetryAsync(3, retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)));
 
 // Add CORS for inter-service communication
 builder.Services.AddCors(options =>
@@ -95,16 +107,15 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseHttpsRedirection();
-
 app.UseCors("AllowAll");
-
-// Add custom exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 Log.Information("Distributor Service starting up");
 

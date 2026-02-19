@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace ClientAppWeb.Models;
 
 public class HomeViewModel
@@ -5,6 +7,7 @@ public class HomeViewModel
     public string StatusMessage { get; set; } = "Ready";
     public Dictionary<string, string> ServiceStatuses { get; set; } = new();
     public List<BlanketModel> Blankets { get; set; } = new();
+    public List<CartItemModel> Cart { get; set; } = new();
     public StockModel? StockInfo { get; set; }
     public List<InventoryModel> Inventory { get; set; } = new();
     public AvailabilityModel? AvailabilityInfo { get; set; }
@@ -12,6 +15,7 @@ public class HomeViewModel
     public List<CustomerOrderModel> CustomerOrders { get; set; } = new();
     public CustomerOrderModel? SelectedOrder { get; set; }
     public string ActiveTab { get; set; } = "blankets";
+    public bool ShowCheckout { get; set; }
 }
 
 public class BlanketModel
@@ -21,6 +25,19 @@ public class BlanketModel
     public string Material { get; set; } = "";
     public string Description { get; set; } = "";
     public decimal UnitPrice { get; set; }
+    [JsonPropertyName("imageUrl")]
+    public string? ImageUrl { get; set; }
+    [JsonPropertyName("additionalImageUrls")]
+    public List<string> AdditionalImageUrls { get; set; } = new();
+}
+
+public class CartItemModel
+{
+    public int BlanketId { get; set; }
+    public string ModelName { get; set; } = "";
+    public decimal UnitPrice { get; set; }
+    public int Quantity { get; set; }
+    public string? ImageUrl { get; set; }
 }
 
 public class StockModel

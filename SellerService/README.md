@@ -3,6 +3,8 @@
 ## Overview
 SellerService is part of the Cozy Comfort Service-Oriented Architecture (SOA) system. It serves as the point of contact for end customers, processing customer orders and coordinating fulfillment through the DistributorService.
 
+For end-to-end order flow, see [Workflows](../docs/WORKFLOWS.md).
+
 ## Architecture
 This service follows **Clean Architecture** principles with the following layers:
 

@@ -58,6 +58,19 @@ This document maps the implementation to the **Current Process** described in th
 
 ---
 
+## PendingManufacturer: current behavior
+
+When distributor stock is insufficient, the Distributor calls the Manufacturer for **production capacity and lead time only**. The system does **not**:
+
+- Create a committed production order at the Manufacturer
+- Trigger reverse fulfillment (Manufacturer → Distributor → Seller) when production completes
+
+The customer receives an order status of **Processing** with an estimated delivery (lead time in days). Actual backorder fulfillment would require a separate flow (e.g. production order commit, notification when stock is ready, then fulfillment).
+
+**Future: backorder fulfillment** — A later enhancement could add: (1) a Production Order API at the Manufacturer that commits/reserves production, and (2) a way for the Distributor to be notified when stock is ready (callback or polling) so pending orders can be fulfilled automatically.
+
+---
+
 ## Availability check (GET /api/availability/{modelId})
 
 - **Seller**: First checks **seller’s own stock** via `_sellerInventoryRepository.GetByBlanketIdAsync(modelId)`. If available, returns that quantity and a message like "available in seller stock".

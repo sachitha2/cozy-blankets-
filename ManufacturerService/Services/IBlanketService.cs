@@ -12,4 +12,6 @@ public interface IBlanketService
     Task<BlanketDto?> GetBlanketByIdAsync(int id);
     Task<StockDto?> GetStockByModelIdAsync(int modelId);
     Task<ProductionResponseDto> ProcessProductionRequestAsync(ProductionRequestDto request);
+    Task<BlanketDto?> UpdateImageUrlAsync(int id, string? imageUrl);
+    Task<BlanketDto?> AddAdditionalImageUrlAsync(int id, string imageUrl);
 }
