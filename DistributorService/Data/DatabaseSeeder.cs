@@ -13,9 +13,44 @@ public static class DatabaseSeeder
         context.Database.EnsureCreated();
 
         // Check if data already exists
-        if (context.Inventories.Any())
+        if (context.Inventories.Any() && context.DeliveryTypes.Any())
         {
             return; // Data already seeded
+        }
+
+        // Seed DeliveryTypes if they don't exist
+        if (!context.DeliveryTypes.Any())
+        {
+            var deliveryTypes = new List<DeliveryType>
+            {
+                new DeliveryType
+                {
+                    Name = "Standard",
+                    Description = "Standard delivery (5-7 business days)",
+                    Cost = 5.00m,
+                    EstimatedDays = 6,
+                    IsActive = true
+                },
+                new DeliveryType
+                {
+                    Name = "Express",
+                    Description = "Express delivery (2-3 business days)",
+                    Cost = 15.00m,
+                    EstimatedDays = 3,
+                    IsActive = true
+                },
+                new DeliveryType
+                {
+                    Name = "Overnight",
+                    Description = "Overnight delivery (next business day)",
+                    Cost = 25.00m,
+                    EstimatedDays = 1,
+                    IsActive = true
+                }
+            };
+
+            context.DeliveryTypes.AddRange(deliveryTypes);
+            context.SaveChanges();
         }
 
         // Seed Inventory (matching ManufacturerService blanket IDs)
@@ -68,7 +103,11 @@ public static class DatabaseSeeder
             }
         };
 
-        context.Inventories.AddRange(inventories);
-        context.SaveChanges();
+        // Seed Inventory if it doesn't exist
+        if (!context.Inventories.Any())
+        {
+            context.Inventories.AddRange(inventories);
+            context.SaveChanges();
+        }
     }
 }

@@ -957,4 +957,434 @@ public class HomeController : Controller
 
         return View("Index", viewModel);
     }
+
+    // ========== Distributor Actions ==========
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> LoadDistributorInventory()
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            // Preserve catalog
+            var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (blanketsResponse.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+
+            var response = await httpClient.GetAsync($"{DistributorServiceUrl}/api/inventory");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.Inventory = await response.Content.ReadFromJsonAsync<List<InventoryModel>>() ?? new();
+                viewModel.StatusMessage = $"Loaded {viewModel.Inventory.Count} inventory items";
+                viewModel.ActiveTab = "distributor-inventory";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> AddDistributorInventory(int blanketId, string modelName, int quantity, decimal unitCost)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var request = new
+            {
+                blanketId = blanketId,
+                modelName = modelName,
+                quantity = quantity,
+                unitCost = unitCost
+            };
+
+            var response = await httpClient.PostAsJsonAsync($"{DistributorServiceUrl}/api/inventory", request);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Inventory item added successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error adding inventory: {response.StatusCode} - {errorBody}";
+            }
+
+            return await LoadDistributorInventory();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> UpdateDistributorInventory(int id, int blanketId, string modelName, int quantity, decimal unitCost)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var request = new
+            {
+                id = id,
+                blanketId = blanketId,
+                modelName = modelName,
+                quantity = quantity,
+                reservedQuantity = 0,
+                availableQuantity = quantity,
+                unitCost = unitCost,
+                lastUpdated = DateTime.UtcNow
+            };
+
+            var response = await httpClient.PutAsJsonAsync($"{DistributorServiceUrl}/api/inventory/{id}", request);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Inventory item updated successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error updating inventory: {response.StatusCode} - {errorBody}";
+            }
+
+            return await LoadDistributorInventory();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> DeleteDistributorInventory(int id)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var response = await httpClient.DeleteAsync($"{DistributorServiceUrl}/api/inventory/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Inventory item deleted successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error deleting inventory: {response.StatusCode} - {errorBody}";
+            }
+
+            return await LoadDistributorInventory();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> LoadDistributorOrders(string? status = null)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            // Preserve catalog
+            var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (blanketsResponse.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+
+            var url = string.IsNullOrWhiteSpace(status) 
+                ? $"{DistributorServiceUrl}/api/order" 
+                : $"{DistributorServiceUrl}/api/order?status={Uri.EscapeDataString(status)}";
+            
+            var response = await httpClient.GetAsync(url);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.DistributorOrders = await response.Content.ReadFromJsonAsync<List<DistributorOrderModel>>() ?? new();
+                viewModel.StatusMessage = $"Loaded {viewModel.DistributorOrders.Count} order(s)";
+                viewModel.ActiveTab = "distributor-orders";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error: {response.StatusCode}";
+            }
+
+            // Also load delivery types for the dropdown
+            try
+            {
+                var deliveryTypesResponse = await httpClient.GetAsync($"{DistributorServiceUrl}/api/deliverytypes");
+                if (deliveryTypesResponse.IsSuccessStatusCode)
+                {
+                    viewModel.DeliveryTypes = await deliveryTypesResponse.Content.ReadFromJsonAsync<List<DeliveryTypeModel>>() ?? new();
+                }
+            }
+            catch { /* ignore delivery types loading errors */ }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> ViewDistributorOrder(int id)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var response = await httpClient.GetAsync($"{DistributorServiceUrl}/api/order/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.SelectedDistributorOrder = await response.Content.ReadFromJsonAsync<DistributorOrderModel>();
+                viewModel.StatusMessage = $"Loaded order {id} details";
+                viewModel.ActiveTab = "distributor-orders";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> UpdateOrderStatus(int id, string status)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var request = new { status = status };
+            var response = await httpClient.PutAsJsonAsync($"{DistributorServiceUrl}/api/order/{id}/status", request);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Order status updated successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error updating order status: {response.StatusCode} - {errorBody}";
+            }
+
+            return await LoadDistributorOrders();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> UpdateOrderDelivery(int id, int? deliveryTypeId, string? deliveryAddress)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var request = new
+            {
+                deliveryTypeId = deliveryTypeId,
+                deliveryAddress = deliveryAddress
+            };
+
+            var response = await httpClient.PutAsJsonAsync($"{DistributorServiceUrl}/api/order/{id}/delivery", request);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Order delivery information updated successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error updating order delivery: {response.StatusCode} - {errorBody}";
+            }
+
+            return await LoadDistributorOrders();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> LoadDeliveryTypes()
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            // Preserve catalog
+            var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (blanketsResponse.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+
+            var response = await httpClient.GetAsync($"{DistributorServiceUrl}/api/deliverytypes");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.DeliveryTypes = await response.Content.ReadFromJsonAsync<List<DeliveryTypeModel>>() ?? new();
+                viewModel.StatusMessage = $"Loaded {viewModel.DeliveryTypes.Count} delivery type(s)";
+                viewModel.ActiveTab = "delivery-types";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> AddDeliveryType(string name, string description, decimal cost, int estimatedDays)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var request = new
+            {
+                name = name,
+                description = description,
+                cost = cost,
+                estimatedDays = estimatedDays
+            };
+
+            var response = await httpClient.PostAsJsonAsync($"{DistributorServiceUrl}/api/deliverytypes", request);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Delivery type added successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error adding delivery type: {response.StatusCode} - {errorBody}";
+            }
+
+            return await LoadDeliveryTypes();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> UpdateDeliveryType(int id, string name, string description, decimal cost, int estimatedDays, bool isActive)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var request = new
+            {
+                name = name,
+                description = description,
+                cost = cost,
+                estimatedDays = estimatedDays,
+                isActive = isActive
+            };
+
+            var response = await httpClient.PutAsJsonAsync($"{DistributorServiceUrl}/api/deliverytypes/{id}", request);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Delivery type updated successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error updating delivery type: {response.StatusCode} - {errorBody}";
+            }
+
+            return await LoadDeliveryTypes();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Distributor")]
+    public async Task<IActionResult> DeleteDeliveryType(int id)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var response = await httpClient.DeleteAsync($"{DistributorServiceUrl}/api/deliverytypes/{id}");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Delivery type deleted successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error deleting delivery type: {response.StatusCode} - {errorBody}";
+            }
+
+            return await LoadDeliveryTypes();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
 }

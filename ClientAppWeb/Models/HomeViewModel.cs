@@ -18,6 +18,10 @@ public class HomeViewModel
     public string ActiveTab { get; set; } = "blankets";
     public bool ShowCheckout { get; set; }
     public List<ManufacturerProductModel> ManufacturerProducts { get; set; } = new();
+    public List<DistributorOrderModel> DistributorOrders { get; set; } = new();
+    public List<DeliveryTypeModel> DeliveryTypes { get; set; } = new();
+    public DistributorOrderModel? SelectedDistributorOrder { get; set; }
+    public DeliveryTypeModel? SelectedDeliveryType { get; set; }
 }
 
 public class BlanketModel
@@ -130,4 +134,30 @@ public class ManufacturerProductModel
     public int DailyCapacity { get; set; }
     public int LeadTimeDays { get; set; }
     public bool CapacityIsActive { get; set; }
+}
+
+public class DistributorOrderModel
+{
+    public int Id { get; set; }
+    public string SellerId { get; set; } = "";
+    public int BlanketId { get; set; }
+    public string ModelName { get; set; } = "";
+    public int Quantity { get; set; }
+    public string Status { get; set; } = "";
+    public DateTime OrderDate { get; set; }
+    public DateTime? FulfilledDate { get; set; }
+    public string? Notes { get; set; }
+    public int? DeliveryTypeId { get; set; }
+    public string? DeliveryTypeName { get; set; }
+    public string? DeliveryAddress { get; set; }
+}
+
+public class DeliveryTypeModel
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = "";
+    public string Description { get; set; } = "";
+    public decimal Cost { get; set; }
+    public int EstimatedDays { get; set; }
+    public bool IsActive { get; set; }
 }

@@ -12,6 +12,7 @@ public interface IInventoryRepository
     Task<Inventory?> GetByIdAsync(int id);
     Task<Inventory> AddAsync(Inventory inventory);
     Task<Inventory> UpdateAsync(Inventory inventory);
+    Task<bool> DeleteAsync(int id);
     Task<bool> ReserveInventoryAsync(int blanketId, int quantity);
     Task<bool> ReleaseReservedInventoryAsync(int blanketId, int quantity);
     Task<bool> IncreaseInventoryAsync(int blanketId, int quantity);

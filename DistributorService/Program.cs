@@ -50,9 +50,11 @@ builder.Services.AddHealthChecks()
 // Register Repositories (Scoped - one per HTTP request)
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IDeliveryTypeRepository, DeliveryTypeRepository>();
 
 // Register Services (Scoped - one per HTTP request)
 builder.Services.AddScoped<IDistributorService, DistributorService.Services.DistributorService>();
+builder.Services.AddScoped<IDeliveryTypeService, DeliveryTypeService>();
 
 // HttpContext accessor for correlation id propagation
 builder.Services.AddHttpContextAccessor();

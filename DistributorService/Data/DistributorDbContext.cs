@@ -16,6 +16,7 @@ public class DistributorDbContext : DbContext
 
     public DbSet<Inventory> Inventories { get; set; }
     public DbSet<Order> Orders { get; set; }
+    public DbSet<DeliveryType> DeliveryTypes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -41,6 +42,21 @@ public class DistributorDbContext : DbContext
             entity.Property(e => e.Quantity).IsRequired();
             entity.Property(e => e.Status).IsRequired().HasMaxLength(50);
             entity.Property(e => e.Notes).HasMaxLength(1000);
+            entity.Property(e => e.DeliveryAddress).HasMaxLength(500);
+            entity.HasOne<DeliveryType>()
+                .WithMany()
+                .HasForeignKey(e => e.DeliveryTypeId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // DeliveryType configuration
+        modelBuilder.Entity<DeliveryType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Description).HasMaxLength(500);
+            entity.Property(e => e.Cost).HasColumnType("REAL");
+            entity.Property(e => e.EstimatedDays).IsRequired();
         });
     }
 }

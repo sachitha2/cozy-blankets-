@@ -12,17 +12,20 @@ public class DistributorService : IDistributorService
 {
     private readonly IInventoryRepository _inventoryRepository;
     private readonly IOrderRepository _orderRepository;
+    private readonly IDeliveryTypeRepository _deliveryTypeRepository;
     private readonly IManufacturerServiceClient _manufacturerClient;
     private readonly ILogger<DistributorService> _logger;
 
     public DistributorService(
         IInventoryRepository inventoryRepository,
         IOrderRepository orderRepository,
+        IDeliveryTypeRepository deliveryTypeRepository,
         IManufacturerServiceClient manufacturerClient,
         ILogger<DistributorService> logger)
     {
         _inventoryRepository = inventoryRepository;
         _orderRepository = orderRepository;
+        _deliveryTypeRepository = deliveryTypeRepository;
         _manufacturerClient = manufacturerClient;
         _logger = logger;
     }
@@ -231,6 +234,229 @@ public class DistributorService : IDistributorService
             _logger.LogError(ex, "Error receiving from manufacturer for order {OrderId}", orderId);
             throw;
         }
+    }
+
+    public async Task<InventoryDto> AddInventoryAsync(CreateInventoryDto dto)
+    {
+        try
+        {
+            var inventory = new Inventory
+            {
+                BlanketId = dto.BlanketId,
+                ModelName = dto.ModelName,
+                Quantity = dto.Quantity,
+                ReservedQuantity = 0,
+                UnitCost = dto.UnitCost,
+                LastUpdated = DateTime.UtcNow
+            };
+
+            var created = await _inventoryRepository.AddAsync(inventory);
+            _logger.LogInformation("Inventory added for BlanketId: {BlanketId}", created.BlanketId);
+            return MapToDto(created);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding inventory");
+            throw;
+        }
+    }
+
+    public async Task<InventoryDto> UpdateInventoryAsync(int id, InventoryDto dto)
+    {
+        try
+        {
+            var inventory = await _inventoryRepository.GetByIdAsync(id);
+            if (inventory == null)
+            {
+                throw new KeyNotFoundException($"Inventory with Id {id} not found");
+            }
+
+            inventory.Quantity = dto.Quantity;
+            inventory.UnitCost = dto.UnitCost;
+            inventory.ModelName = dto.ModelName;
+
+            var updated = await _inventoryRepository.UpdateAsync(inventory);
+            _logger.LogInformation("Inventory updated for Id: {Id}", updated.Id);
+            return MapToDto(updated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating inventory with Id: {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<bool> DeleteInventoryAsync(int id)
+    {
+        try
+        {
+            var inventory = await _inventoryRepository.GetByIdAsync(id);
+            if (inventory == null)
+            {
+                return false;
+            }
+
+            // Check if inventory has reserved quantity
+            if (inventory.ReservedQuantity > 0)
+            {
+                throw new InvalidOperationException($"Cannot delete inventory with reserved quantity: {inventory.ReservedQuantity}");
+            }
+
+            var result = await _inventoryRepository.DeleteAsync(id);
+            _logger.LogInformation("Inventory deleted with Id: {Id}", id);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting inventory with Id: {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<IEnumerable<OrderDto>> GetOrdersAsync(string? status = null)
+    {
+        try
+        {
+            var orders = await _orderRepository.GetAllAsync();
+            
+            if (!string.IsNullOrWhiteSpace(status))
+            {
+                orders = orders.Where(o => o.Status.Equals(status, StringComparison.OrdinalIgnoreCase));
+            }
+
+            var orderDtos = new List<OrderDto>();
+            foreach (var order in orders)
+            {
+                var orderDto = await MapToOrderDtoAsync(order);
+                orderDtos.Add(orderDto);
+            }
+
+            return orderDtos;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving orders");
+            throw;
+        }
+    }
+
+    public async Task<OrderDto?> GetOrderByIdAsync(int id)
+    {
+        try
+        {
+            var order = await _orderRepository.GetByIdAsync(id);
+            if (order == null)
+            {
+                return null;
+            }
+
+            return await MapToOrderDtoAsync(order);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving order with Id: {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<OrderDto> UpdateOrderStatusAsync(int id, string status)
+    {
+        try
+        {
+            var order = await _orderRepository.GetByIdAsync(id);
+            if (order == null)
+            {
+                throw new KeyNotFoundException($"Order with Id {id} not found");
+            }
+
+            // Validate status transition
+            if (order.Status == "Cancelled" && status != "Cancelled")
+            {
+                throw new InvalidOperationException("Cannot change status of a cancelled order");
+            }
+
+            if (order.Status == "Fulfilled" && status != "Fulfilled")
+            {
+                throw new InvalidOperationException("Cannot change status of a fulfilled order");
+            }
+
+            order.Status = status;
+            if (status == "Fulfilled" && order.FulfilledDate == null)
+            {
+                order.FulfilledDate = DateTime.UtcNow;
+            }
+
+            var updated = await _orderRepository.UpdateAsync(order);
+            _logger.LogInformation("Order {OrderId} status updated to {Status}", updated.Id, status);
+            return await MapToOrderDtoAsync(updated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating order status for Id: {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<OrderDto> UpdateOrderDeliveryAsync(int id, int? deliveryTypeId, string? deliveryAddress)
+    {
+        try
+        {
+            var order = await _orderRepository.GetByIdAsync(id);
+            if (order == null)
+            {
+                throw new KeyNotFoundException($"Order with Id {id} not found");
+            }
+
+            if (deliveryTypeId.HasValue)
+            {
+                var deliveryType = await _deliveryTypeRepository.GetByIdAsync(deliveryTypeId.Value);
+                if (deliveryType == null)
+                {
+                    throw new KeyNotFoundException($"Delivery type with Id {deliveryTypeId.Value} not found");
+                }
+            }
+
+            order.DeliveryTypeId = deliveryTypeId;
+            order.DeliveryAddress = deliveryAddress;
+
+            var updated = await _orderRepository.UpdateAsync(order);
+            _logger.LogInformation("Order {OrderId} delivery information updated", updated.Id);
+            return await MapToOrderDtoAsync(updated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating order delivery for Id: {Id}", id);
+            throw;
+        }
+    }
+
+    private async Task<OrderDto> MapToOrderDtoAsync(Order order)
+    {
+        var orderDto = new OrderDto
+        {
+            Id = order.Id,
+            SellerId = order.SellerId,
+            BlanketId = order.BlanketId,
+            ModelName = order.ModelName,
+            Quantity = order.Quantity,
+            Status = order.Status,
+            OrderDate = order.OrderDate,
+            FulfilledDate = order.FulfilledDate,
+            Notes = order.Notes,
+            DeliveryTypeId = order.DeliveryTypeId,
+            DeliveryAddress = order.DeliveryAddress
+        };
+
+        if (order.DeliveryTypeId.HasValue)
+        {
+            var deliveryType = await _deliveryTypeRepository.GetByIdAsync(order.DeliveryTypeId.Value);
+            if (deliveryType != null)
+            {
+                orderDto.DeliveryTypeName = deliveryType.Name;
+            }
+        }
+
+        return orderDto;
     }
 
     private static InventoryDto MapToDto(Inventory inventory)

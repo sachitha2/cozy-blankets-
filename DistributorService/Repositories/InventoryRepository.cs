@@ -92,6 +92,28 @@ public class InventoryRepository : IInventoryRepository
         }
     }
 
+    public async Task<bool> DeleteAsync(int id)
+    {
+        try
+        {
+            var inventory = await GetByIdAsync(id);
+            if (inventory == null)
+            {
+                return false;
+            }
+
+            _context.Inventories.Remove(inventory);
+            await _context.SaveChangesAsync();
+            _logger.LogInformation("Inventory deleted successfully with Id: {Id}", id);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error deleting inventory");
+            throw;
+        }
+    }
+
     public async Task<bool> ReserveInventoryAsync(int blanketId, int quantity)
     {
         try

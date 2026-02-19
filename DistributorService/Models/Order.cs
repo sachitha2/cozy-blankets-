@@ -10,8 +10,10 @@ public class Order
     public int BlanketId { get; set; }
     public string ModelName { get; set; } = string.Empty;
     public int Quantity { get; set; }
-    public string Status { get; set; } = "Pending"; // Pending, Fulfilled, Cancelled
+    public string Status { get; set; } = "Pending"; // Pending, Fulfilled, Cancelled, PendingManufacturer
     public DateTime OrderDate { get; set; } = DateTime.UtcNow;
     public DateTime? FulfilledDate { get; set; }
     public string? Notes { get; set; }
+    public int? DeliveryTypeId { get; set; } // Foreign key to DeliveryType
+    public string? DeliveryAddress { get; set; } // Delivery address for the order
 }
