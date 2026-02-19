@@ -287,9 +287,15 @@
                 <div class="separator"></div>
                 @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Seller"))
                 {
-                    <h3>My Inventory</h3>
+                    <h3>Seller</h3>
+                    <form method="post" asp-action="LoadSellerBlankets">
+                        <button type="submit" class="btn btn-success">View Blankets</button>
+                    </form>
                     <form method="post" asp-action="LoadSellerInventory">
                         <button type="submit" class="btn btn-success">My inventory</button>
+                    </form>
+                    <form method="post" asp-action="LoadSellerOrders">
+                        <button type="submit" class="btn btn-success">All Orders</button>
                     </form>
                     <div class="separator"></div>
                 }
@@ -433,6 +439,12 @@
                     @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Manufacturer"))
                     {
                         <button class="tab @(Model.ActiveTab == "manufacturer" ? "active" : "")" onclick="showTab('manufacturer')">Manufacturer</button>
+                    }
+                    @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Seller"))
+                    {
+                        <button class="tab @(Model.ActiveTab == "seller-blankets" ? "active" : "")" onclick="showTab('seller-blankets')">Seller Blankets</button>
+                        <button class="tab @(Model.ActiveTab == "create-order" ? "active" : "")" onclick="showTab('create-order')">Create Order</button>
+                        <button class="tab @(Model.ActiveTab == "seller-orders" ? "active" : "")" onclick="showTab('seller-orders')">Seller Orders</button>
                     }
                     @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Distributor"))
                     {
@@ -609,6 +621,268 @@
                     else
                     {
                         <div class="alert alert-info">Admin: use <strong>Manufacturer stock</strong> in the sidebar to load data.</div>
+                    }
+                </div>
+
+                <!-- Seller Blankets Tab -->
+                <div id="seller-blankets" class="tab-content @(Model.ActiveTab == "seller-blankets" ? "active" : "")" style="@(Model.ActiveTab == "seller-blankets" ? "" : "display: none;")">
+                    @if (Model.Blankets.Any())
+                    {
+                        <p class="tab-intro">Browse available blankets to create orders for customers.</p>
+                        <div class="product-grid">
+                            @foreach (var blanket in Model.Blankets)
+                            {
+                                <div class="product-card">
+                                    <a href="@Url.Action("ProductDetail", new { id = blanket.Id })" class="product-card-link" style="text-decoration: none; color: inherit;">
+                                        <div class="img-wrap">
+                                            @{
+                                                var catalogImageUrl = !string.IsNullOrEmpty(blanket.ImageUrl) ? blanket.ImageUrl : blanket.AdditionalImageUrls?.FirstOrDefault();
+                                            }
+                                            @if (!string.IsNullOrEmpty(catalogImageUrl))
+                                            {
+                                                <img src="@catalogImageUrl" alt="@blanket.ModelName" />
+                                            }
+                                            else
+                                            {
+                                                <span>No image</span>
+                                            }
+                                        </div>
+                                        <div class="body">
+                                            <div class="title">@blanket.ModelName</div>
+                                            <div class="price">$@blanket.UnitPrice.ToString("F2")</div>
+                                            <p style="font-size: 13px; color: #555; margin-bottom: 12px;">@blanket.Description</p>
+                                            <p style="font-size: 12px; color: #777;"><strong>Material:</strong> @blanket.Material</p>
+                                        </div>
+                                    </a>
+                                    <div class="body" style="border-top: 1px solid #eee; padding-top: 12px; margin-top: 0;">
+                                        <button type="button" class="btn btn-success" style="width: 100%;" onclick="addToOrderForm(@blanket.Id, '@blanket.ModelName', @blanket.UnitPrice)">Add to Order</button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">Use <strong>View Blankets</strong> in the sidebar to load the product catalog.</div>
+                    }
+                </div>
+
+                <!-- Create Order Tab -->
+                <div id="create-order" class="tab-content @(Model.ActiveTab == "create-order" ? "active" : "")" style="@(Model.ActiveTab == "create-order" ? "" : "display: none;")">
+                    <h3>Create Customer Order</h3>
+                    <form method="post" asp-action="CreateCustomerOrder" id="createOrderForm" style="max-width: 800px;">
+                        <div style="background: #f5f5f5; padding: 20px; border-radius: 4px; margin-bottom: 20px;">
+                            <h4 style="margin-top: 0;">Customer Information</h4>
+                            <div style="margin-bottom: 16px;">
+                                <label>Customer Name <span style="color: red;">*</span></label>
+                                <input type="text" name="customerName" required style="width: 100%; padding: 8px;" placeholder="John Doe" />
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <label>Customer Email <span style="color: red;">*</span></label>
+                                <input type="email" name="customerEmail" required style="width: 100%; padding: 8px;" placeholder="john@example.com" />
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <label>Customer Phone</label>
+                                <input type="tel" name="customerPhone" style="width: 100%; padding: 8px;" placeholder="+1 234-567-8900" />
+                            </div>
+                            <div style="margin-bottom: 16px;">
+                                <label>Shipping Address <span style="color: red;">*</span></label>
+                                <input type="text" name="shippingAddress" required style="width: 100%; padding: 8px;" placeholder="123 Main St, City, State ZIP" />
+                            </div>
+                        </div>
+
+                        <div style="background: #f5f5f5; padding: 20px; border-radius: 4px; margin-bottom: 20px;">
+                            <h4 style="margin-top: 0;">Order Items</h4>
+                            <div style="margin-bottom: 16px;">
+                                <label>Select Blanket</label>
+                                <select id="blanketSelect" style="width: 100%; padding: 8px;">
+                                    <option value="">-- Select a blanket --</option>
+                                    @foreach (var blanket in Model.Blankets)
+                                    {
+                                        <option value="@blanket.Id" data-name="@blanket.ModelName" data-price="@blanket.UnitPrice">@blanket.ModelName - $@blanket.UnitPrice.ToString("F2")</option>
+                                    }
+                                </select>
+                            </div>
+                            <div style="margin-bottom: 16px; display: flex; gap: 8px;">
+                                <input type="number" id="itemQuantity" min="1" value="1" style="flex: 1; padding: 8px;" placeholder="Quantity" />
+                                <button type="button" class="btn btn-primary" onclick="addOrderItem()">Add Item</button>
+                            </div>
+                            <div id="orderItemsList" style="margin-top: 16px;">
+                                <table style="width: 100%; border-collapse: collapse;">
+                                    <thead>
+                                        <tr style="background: #e9ecef;">
+                                            <th style="padding: 8px; text-align: left;">Model Name</th>
+                                            <th style="padding: 8px; text-align: right;">Quantity</th>
+                                            <th style="padding: 8px; text-align: right;">Unit Price</th>
+                                            <th style="padding: 8px; text-align: right;">Subtotal</th>
+                                            <th style="padding: 8px; text-align: center;">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="orderItemsBody">
+                                        <!-- Items will be added here dynamically -->
+                                    </tbody>
+                                    <tfoot>
+                                        <tr>
+                                            <td colspan="3" style="padding: 8px; text-align: right; font-weight: bold;">Total:</td>
+                                            <td id="orderTotal" style="padding: 8px; text-align: right; font-weight: bold;">$0.00</td>
+                                            <td></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                            <input type="hidden" name="orderItemsJson" id="orderItemsJson" />
+                        </div>
+
+                        <button type="submit" class="btn btn-success" style="width: 100%; padding: 12px; font-size: 16px;">Create Order</button>
+                    </form>
+                </div>
+
+                <!-- Seller Orders Tab -->
+                <div id="seller-orders" class="tab-content @(Model.ActiveTab == "seller-orders" ? "active" : "")" style="@(Model.ActiveTab == "seller-orders" ? "" : "display: none;")">
+                    @if (Model.SelectedOrder != null)
+                    {
+                        <div style="margin-bottom: 20px;">
+                            <form method="post" asp-action="LoadSellerOrders" style="display: inline;">
+                                <button type="submit" class="btn btn-default">← Back to Orders List</button>
+                            </form>
+                        </div>
+                        <div id="orderDetailView" style="background: #f9f9f9; padding: 20px; border-radius: 4px;">
+                            <h3>Order #@Model.SelectedOrder.Id</h3>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                                <div>
+                                    <h4>Order Information</h4>
+                                    <p><strong>Order Date:</strong> @Model.SelectedOrder.OrderDate.ToString("yyyy-MM-dd HH:mm")</p>
+                                    <p><strong>Status:</strong> 
+                                        <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
+                                            @if(Model.SelectedOrder.Status == "Fulfilled") { <text>background: #d4edda; color: #155724;</text> }
+                                            else if(Model.SelectedOrder.Status == "Processing") { <text>background: #d1ecf1; color: #0c5460;</text> }
+                                            else if(Model.SelectedOrder.Status == "Cancelled") { <text>background: #f8d7da; color: #721c24;</text> }
+                                            else { <text>background: #fff3cd; color: #856404;</text> }">
+                                            @Model.SelectedOrder.Status
+                                        </span>
+                                    </p>
+                                    @if (Model.SelectedOrder.FulfilledDate.HasValue)
+                                    {
+                                        <p><strong>Fulfilled Date:</strong> @Model.SelectedOrder.FulfilledDate.Value.ToString("yyyy-MM-dd HH:mm")</p>
+                                    }
+                                    <p><strong>Total Amount:</strong> $@Model.SelectedOrder.TotalAmount.ToString("F2")</p>
+                                </div>
+                                <div>
+                                    <h4>Customer Information</h4>
+                                    <p><strong>Name:</strong> @Model.SelectedOrder.CustomerName</p>
+                                    <p><strong>Email:</strong> @Model.SelectedOrder.CustomerEmail</p>
+                                    @if (!string.IsNullOrWhiteSpace(Model.SelectedOrder.CustomerPhone))
+                                    {
+                                        <p><strong>Phone:</strong> @Model.SelectedOrder.CustomerPhone</p>
+                                    }
+                                    <p><strong>Shipping Address:</strong> @Model.SelectedOrder.ShippingAddress</p>
+                                </div>
+                            </div>
+                            <h4>Order Items</h4>
+                            <table style="width: 100%; border-collapse: collapse;">
+                                <thead>
+                                    <tr style="background: #e9ecef;">
+                                        <th style="padding: 8px; text-align: left;">Model Name</th>
+                                        <th style="padding: 8px; text-align: right;">Quantity</th>
+                                        <th style="padding: 8px; text-align: right;">Unit Price</th>
+                                        <th style="padding: 8px; text-align: right;">Subtotal</th>
+                                        <th style="padding: 8px; text-align: center;">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.SelectedOrder.OrderItems)
+                                    {
+                                        <tr>
+                                            <td style="padding: 8px;">@item.ModelName</td>
+                                            <td style="padding: 8px; text-align: right;">@item.Quantity</td>
+                                            <td style="padding: 8px; text-align: right;">$@item.UnitPrice.ToString("F2")</td>
+                                            <td style="padding: 8px; text-align: right;">$@item.SubTotal.ToString("F2")</td>
+                                            <td style="padding: 8px; text-align: center;">
+                                                <span style="padding: 4px 8px; border-radius: 8px; font-size: 11px; font-weight: 600;
+                                                    @if(item.Status == "Fulfilled") { <text>background: #d4edda; color: #155724;</text> }
+                                                    else if(item.Status == "Processing") { <text>background: #d1ecf1; color: #0c5460;</text> }
+                                                    else if(item.Status == "Unavailable") { <text>background: #f8d7da; color: #721c24;</text> }
+                                                    else { <text>background: #fff3cd; color: #856404;</text> }">
+                                                    @item.Status
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (Model.CustomerOrders.Any())
+                        {
+                            <p class="tab-intro">All customer orders.</p>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Order #</th>
+                                        <th>Customer Name</th>
+                                        <th>Customer Email</th>
+                                        <th>Order Date</th>
+                                        <th>Status</th>
+                                        <th>Total</th>
+                                        <th>Items</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var order in Model.CustomerOrders)
+                                    {
+                                        <tr>
+                                            <td><strong>#@order.Id</strong></td>
+                                            <td>@order.CustomerName</td>
+                                            <td>@order.CustomerEmail</td>
+                                            <td>@order.OrderDate.ToString("yyyy-MM-dd HH:mm")</td>
+                                            <td>
+                                                <span style="padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
+                                                    @if(order.Status == "Fulfilled") { <text>background: #d4edda; color: #155724;</text> }
+                                                    else if(order.Status == "Processing") { <text>background: #d1ecf1; color: #0c5460;</text> }
+                                                    else if(order.Status == "Cancelled") { <text>background: #f8d7da; color: #721c24;</text> }
+                                                    else { <text>background: #fff3cd; color: #856404;</text> }">
+                                                    @order.Status
+                                                </span>
+                                            </td>
+                                            <td><strong>$@order.TotalAmount.ToString("F2")</strong></td>
+                                            <td>@order.OrderItems.Count item(s)</td>
+                                            <td>
+                                                <form method="post" asp-action="ViewSellerOrder" style="display: inline;">
+                                                    <input type="hidden" name="orderId" value="@order.Id" />
+                                                    <button type="submit" class="btn btn-primary" style="padding: 4px 12px; font-size: 12px;">View Details</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                        @if (order.OrderItems.Any())
+                                        {
+                                            <tr style="background: #f8f9fa;">
+                                                <td colspan="8" style="padding: 10px 15px;">
+                                                    <strong>Items:</strong>
+                                                    @foreach (var item in order.OrderItems)
+                                                    {
+                                                        <span style="margin-right: 15px;">
+                                                            @item.ModelName (Qty: @item.Quantity) – $@item.SubTotal.ToString("F2") 
+                                                            [<span style="font-size: 11px;
+                                                                @if(item.Status == "Fulfilled") { <text>color: #155724;</text> }
+                                                                else if(item.Status == "Processing") { <text>color: #0c5460;</text> }
+                                                                else if(item.Status == "Unavailable") { <text>color: #721c24;</text> }
+                                                                else { <text>color: #856404;</text> }">@item.Status</span>]
+                                                        </span>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info">Use <strong>All Orders</strong> in the sidebar to load customer orders.</div>
+                        }
                     }
                 </div>
 
@@ -1050,6 +1324,97 @@
     </div>
 
     <script>
+        // Order items management
+        let orderItems = [];
+
+        function addOrderItem() {
+            const select = document.getElementById('blanketSelect');
+            const quantityInput = document.getElementById('itemQuantity');
+            
+            if (!select.value) {
+                alert('Please select a blanket');
+                return;
+            }
+            
+            const quantity = parseInt(quantityInput.value) || 1;
+            if (quantity < 1) {
+                alert('Quantity must be at least 1');
+                return;
+            }
+            
+            const blanketId = parseInt(select.value);
+            const modelName = select.options[select.selectedIndex].getAttribute('data-name');
+            const unitPrice = parseFloat(select.options[select.selectedIndex].getAttribute('data-price'));
+            
+            // Check if item already exists
+            const existingIndex = orderItems.findIndex(item => item.blanketId === blanketId);
+            if (existingIndex >= 0) {
+                orderItems[existingIndex].quantity += quantity;
+            } else {
+                orderItems.push({
+                    blanketId: blanketId,
+                    quantity: quantity,
+                    modelName: modelName,
+                    unitPrice: unitPrice
+                });
+            }
+            
+            updateOrderItemsDisplay();
+            quantityInput.value = 1;
+        }
+
+        function addToOrderForm(blanketId, modelName, unitPrice) {
+            // Switch to create order tab
+            showTab('create-order');
+            
+            // Set the select and add item
+            document.getElementById('blanketSelect').value = blanketId;
+            addOrderItem();
+        }
+
+        function removeOrderItem(index) {
+            orderItems.splice(index, 1);
+            updateOrderItemsDisplay();
+        }
+
+        function updateOrderItemsDisplay() {
+            const tbody = document.getElementById('orderItemsBody');
+            const totalCell = document.getElementById('orderTotal');
+            const jsonInput = document.getElementById('orderItemsJson');
+            
+            tbody.innerHTML = '';
+            let total = 0;
+            
+            orderItems.forEach((item, index) => {
+                const subtotal = item.quantity * item.unitPrice;
+                total += subtotal;
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td style="padding: 8px;">${item.modelName}</td>
+                    <td style="padding: 8px; text-align: right;">${item.quantity}</td>
+                    <td style="padding: 8px; text-align: right;">$${item.unitPrice.toFixed(2)}</td>
+                    <td style="padding: 8px; text-align: right;">$${subtotal.toFixed(2)}</td>
+                    <td style="padding: 8px; text-align: center;">
+                        <button type="button" class="btn btn-danger" style="padding: 4px 8px; font-size: 12px;" onclick="removeOrderItem(${index})">Remove</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            totalCell.textContent = '$' + total.toFixed(2);
+            jsonInput.value = JSON.stringify(orderItems.map(item => ({ blanketId: item.blanketId, quantity: item.quantity })));
+        }
+
+        // Form validation
+        document.getElementById('createOrderForm')?.addEventListener('submit', function(e) {
+            if (orderItems.length === 0) {
+                e.preventDefault();
+                alert('Please add at least one item to the order');
+                return false;
+            }
+        });
+
         function showTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(function(tab) {
                 tab.classList.remove('active');
@@ -1086,6 +1451,9 @@
                     else if (tabName === 'distributorinventory') tabName = 'distributor-inventory';
                     else if (tabName === 'distributororders') tabName = 'distributor-orders';
                     else if (tabName === 'deliverytypes') tabName = 'delivery-types';
+                    else if (tabName === 'sellerblankets') tabName = 'seller-blankets';
+                    else if (tabName === 'createorder') tabName = 'create-order';
+                    else if (tabName === 'sellerorders') tabName = 'seller-orders';
                     showTab(tabName);
                 });
             });

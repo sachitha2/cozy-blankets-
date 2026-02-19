@@ -108,7 +108,11 @@ public class HomeController : Controller
                         viewModel.ActiveTab = "inventory";
                         if (viewModel.SellerInventory.Any())
                         {
-                            viewModel.StatusMessage = $"Welcome! You have {viewModel.SellerInventory.Count} inventory item(s).";
+                            viewModel.StatusMessage = $"Welcome! You have {viewModel.SellerInventory.Count} inventory item(s). Use the sidebar to view blankets, create orders, or manage orders.";
+                        }
+                        else
+                        {
+                            viewModel.StatusMessage = "Welcome! Use the sidebar to view blankets, create orders, or manage orders.";
                         }
                     }
                 }
@@ -391,6 +395,219 @@ public class HomeController : Controller
                 viewModel.SellerInventory = await response.Content.ReadFromJsonAsync<List<InventoryModel>>() ?? new();
                 viewModel.StatusMessage = $"Loaded {viewModel.SellerInventory.Count} inventory items";
                 viewModel.ActiveTab = "inventory";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> LoadSellerBlankets()
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var response = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await response.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+                viewModel.StatusMessage = $"Loaded {viewModel.Blankets.Count} blanket(s)";
+                viewModel.ActiveTab = "seller-blankets";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error loading blankets: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> LoadSellerOrders()
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            // Preserve catalog
+            var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (blanketsResponse.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+
+            var response = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder");
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.CustomerOrders = await response.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
+                viewModel.StatusMessage = $"Loaded {viewModel.CustomerOrders.Count} order(s)";
+                viewModel.ActiveTab = "seller-orders";
+            }
+            else
+            {
+                viewModel.StatusMessage = $"Error: {response.StatusCode}";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> CreateCustomerOrder(string customerName, string customerEmail, string? customerPhone, string shippingAddress, string orderItemsJson)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            // Preserve catalog
+            var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (blanketsResponse.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+
+            if (string.IsNullOrWhiteSpace(customerName) || string.IsNullOrWhiteSpace(customerEmail) || string.IsNullOrWhiteSpace(shippingAddress))
+            {
+                viewModel.StatusMessage = "Customer Name, Email, and Shipping Address are required.";
+                viewModel.ActiveTab = "create-order";
+                return View("Index", viewModel);
+            }
+
+            // Parse order items from JSON
+            var items = new List<object>();
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(orderItemsJson))
+                {
+                    using var doc = JsonDocument.Parse(orderItemsJson);
+                    if (doc.RootElement.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var item in doc.RootElement.EnumerateArray())
+                        {
+                            if (item.TryGetProperty("blanketId", out var bid) && item.TryGetProperty("quantity", out var qty))
+                            {
+                                items.Add(new { blanketId = bid.GetInt32(), quantity = qty.GetInt32() });
+                            }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // Invalid JSON, will be caught by empty check below
+            }
+
+            if (!items.Any())
+            {
+                viewModel.StatusMessage = "Order must contain at least one item.";
+                viewModel.ActiveTab = "create-order";
+                return View("Index", viewModel);
+            }
+
+            var order = new
+            {
+                customerName = customerName.Trim(),
+                customerEmail = customerEmail.Trim(),
+                customerPhone = customerPhone?.Trim() ?? "",
+                shippingAddress = shippingAddress.Trim(),
+                items = items
+            };
+
+            var response = await httpClient.PostAsJsonAsync($"{SellerServiceUrl}/api/customerorder", order);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.OrderResponse = await response.Content.ReadFromJsonAsync<OrderResponseModel>();
+                viewModel.StatusMessage = $"Order #{viewModel.OrderResponse?.OrderId} created successfully!";
+                viewModel.ActiveTab = "seller-orders";
+
+                // Reload orders
+                var ordersResponse = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder");
+                if (ordersResponse.IsSuccessStatusCode)
+                {
+                    viewModel.CustomerOrders = await ordersResponse.Content.ReadFromJsonAsync<List<CustomerOrderModel>>() ?? new();
+                }
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = GetOrderErrorMessage(response.StatusCode, errorBody);
+                viewModel.ActiveTab = "create-order";
+            }
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            viewModel.ActiveTab = "create-order";
+            try
+            {
+                var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+                if (blanketsResponse.IsSuccessStatusCode)
+                    viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+            catch { /* ignore */ }
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Seller")]
+    public async Task<IActionResult> ViewSellerOrder(int orderId)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            // Preserve catalog
+            var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (blanketsResponse.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+
+            var response = await httpClient.GetAsync($"{SellerServiceUrl}/api/customerorder/{orderId}");
+            if (response.IsSuccessStatusCode)
+            {
+                var order = await response.Content.ReadFromJsonAsync<CustomerOrderModel>();
+                if (order != null)
+                {
+                    viewModel.SelectedOrder = order;
+                    viewModel.StatusMessage = $"Loaded order {orderId} details";
+                    viewModel.ActiveTab = "seller-orders";
+                }
+                else
+                {
+                    viewModel.StatusMessage = "Order not found.";
+                }
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+            {
+                viewModel.StatusMessage = $"Order {orderId} not found";
             }
             else
             {
