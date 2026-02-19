@@ -297,6 +297,7 @@
                     <form method="post" asp-action="LoadSellerOrders">
                         <button type="submit" class="btn btn-success">All Orders</button>
                     </form>
+                    <a href="@Url.Action("ContactSubmissions", "Admin")" class="btn btn-default" style="text-decoration: none; display: block; text-align: left; margin-top: 8px;">View Contact Submissions</a>
                     <div class="separator"></div>
                 }
                 @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Manufacturer"))
@@ -325,7 +326,7 @@
                     </form>
                     <div class="separator"></div>
                 }
-                @if (User.Identity?.IsAuthenticated != true || !User.IsInRole("Customer"))
+                @if ((User.Identity?.IsAuthenticated != true || !User.IsInRole("Customer")) && !User.IsInRole("Seller"))
                 {
                     <h3>Admin / Demo</h3>
                     @if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Customer"))
@@ -378,7 +379,8 @@
                     </div>
                 }
 
-                @if (Model.ActiveTab != "manufacturer" && Model.ActiveTab != "distributor-inventory" && Model.ActiveTab != "distributor-orders" && Model.ActiveTab != "delivery-types")
+                @if (Model.ActiveTab != "manufacturer" && Model.ActiveTab != "distributor-inventory" && Model.ActiveTab != "distributor-orders" && Model.ActiveTab != "delivery-types"
+                    && Model.ActiveTab != "inventory" && Model.ActiveTab != "seller-blankets" && Model.ActiveTab != "seller-orders" && Model.ActiveTab != "create-order")
                 {
                     <h3 style="margin-bottom: 16px;">Our blankets</h3>
                     @if (Model.Blankets.Any())
