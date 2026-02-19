@@ -357,9 +357,12 @@
                                         <input type="number" name="quantity" value="1" min="1" max="99" style="width: 60px; padding: 8px;" />
                                         <button type="submit" class="btn btn-success" style="flex: 1;">Add to cart</button>
                                     </form>
-                                    <div class="add-image">
-                                        <a href="#" class="add-image-link" data-id="@blanket.Id" data-name="@blanket.ModelName">Add image</a>
-                                    </div>
+                                    @if (User.Identity?.IsAuthenticated == true && !User.IsInRole("Customer"))
+                                    {
+                                        <div class="add-image">
+                                            <a href="#" class="add-image-link" data-id="@blanket.Id" data-name="@blanket.ModelName">Add image</a>
+                                        </div>
+                                    }
                                 </div>
                             </div>
                         }
