@@ -203,4 +203,184 @@ public class BlanketsController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while processing the production request" });
         }
     }
+
+    /// <summary>
+    /// Create a new blanket model
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(BlanketDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BlanketDto>> CreateBlanket([FromBody] CreateBlanketRequest request)
+    {
+        try
+        {
+            if (request == null)
+                return BadRequest(new { error = "Request body is required" });
+
+            if (string.IsNullOrWhiteSpace(request.ModelName))
+                return BadRequest(new { error = "ModelName is required" });
+
+            if (string.IsNullOrWhiteSpace(request.Material))
+                return BadRequest(new { error = "Material is required" });
+
+            if (request.UnitPrice < 0)
+                return BadRequest(new { error = "UnitPrice cannot be negative" });
+
+            var blanket = await _blanketService.CreateBlanketAsync(request);
+            return CreatedAtAction(nameof(GetBlanketById), new { id = blanket.Id }, blanket);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot create blanket: {Message}", ex.Message);
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating blanket");
+            return StatusCode(500, new { error = "An error occurred while creating the blanket" });
+        }
+    }
+
+    /// <summary>
+    /// Update a blanket model (partial update)
+    /// </summary>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(typeof(BlanketDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<BlanketDto>> UpdateBlanket(int id, [FromBody] UpdateBlanketRequest request)
+    {
+        try
+        {
+            if (id <= 0)
+                return BadRequest(new { error = "Invalid blanket ID" });
+
+            if (request == null)
+                return BadRequest(new { error = "Request body is required" });
+
+            if (request.UnitPrice.HasValue && request.UnitPrice.Value < 0)
+                return BadRequest(new { error = "UnitPrice cannot be negative" });
+
+            var blanket = await _blanketService.UpdateBlanketAsync(id, request);
+            if (blanket == null)
+                return NotFound(new { error = $"Blanket with ID {id} not found" });
+
+            return Ok(blanket);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Cannot update blanket: {Message}", ex.Message);
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating blanket with Id: {Id}", id);
+            return StatusCode(500, new { error = "An error occurred while updating the blanket" });
+        }
+    }
+
+    /// <summary>
+    /// Get production capacity for a blanket
+    /// </summary>
+    [HttpGet("{id:int}/capacity")]
+    [ProducesResponseType(typeof(ProductionCapacityDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ProductionCapacityDto>> GetCapacity(int id)
+    {
+        try
+        {
+            if (id <= 0)
+                return BadRequest(new { error = "Invalid blanket ID" });
+
+            var capacity = await _blanketService.GetCapacityByBlanketIdAsync(id);
+            if (capacity == null)
+                return NotFound(new { error = $"Production capacity not found for blanket ID {id}" });
+
+            return Ok(capacity);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving capacity for blanket Id: {Id}", id);
+            return StatusCode(500, new { error = "An error occurred while retrieving production capacity" });
+        }
+    }
+
+    /// <summary>
+    /// Update production capacity for a blanket
+    /// </summary>
+    [HttpPatch("{id:int}/capacity")]
+    [ProducesResponseType(typeof(ProductionCapacityDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<ProductionCapacityDto>> UpdateCapacity(int id, [FromBody] UpdateProductionCapacityRequest request)
+    {
+        try
+        {
+            if (id <= 0)
+                return BadRequest(new { error = "Invalid blanket ID" });
+
+            if (request == null)
+                return BadRequest(new { error = "Request body is required" });
+
+            if (request.DailyCapacity.HasValue && request.DailyCapacity.Value <= 0)
+                return BadRequest(new { error = "DailyCapacity must be greater than zero" });
+
+            if (request.LeadTimeDays.HasValue && request.LeadTimeDays.Value < 0)
+                return BadRequest(new { error = "LeadTimeDays cannot be negative" });
+
+            var capacity = await _blanketService.UpdateCapacityAsync(id, request);
+            if (capacity == null)
+                return NotFound(new { error = $"Blanket with ID {id} not found" });
+
+            return Ok(capacity);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating capacity for blanket Id: {Id}", id);
+            return StatusCode(500, new { error = "An error occurred while updating production capacity" });
+        }
+    }
+
+    /// <summary>
+    /// Set stock quantity for a blanket
+    /// </summary>
+    [HttpPatch("{id:int}/stock")]
+    [ProducesResponseType(typeof(StockDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+    public async Task<ActionResult<StockDto>> SetStock(int id, [FromBody] SetStockRequest request)
+    {
+        try
+        {
+            if (id <= 0)
+                return BadRequest(new { error = "Invalid blanket ID" });
+
+            if (request == null)
+                return BadRequest(new { error = "Request body is required" });
+
+            if (request.Quantity < 0)
+                return BadRequest(new { error = "Quantity cannot be negative" });
+
+            var stock = await _blanketService.SetStockAsync(id, request.Quantity);
+            if (stock == null)
+                return NotFound(new { error = $"Blanket with ID {id} not found" });
+
+            return Ok(stock);
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid stock request: {Message}", ex.Message);
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting stock for blanket Id: {Id}", id);
+            return StatusCode(500, new { error = "An error occurred while setting stock" });
+        }
+    }
 }

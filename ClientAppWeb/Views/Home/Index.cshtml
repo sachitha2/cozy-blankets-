@@ -290,6 +290,15 @@
                     </form>
                     <div class="separator"></div>
                 }
+                @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Manufacturer"))
+                {
+                    <h3>Manufacturer</h3>
+                    <form method="post" asp-action="LoadManufacturerDashboard">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-success">My products</button>
+                    </form>
+                    <div class="separator"></div>
+                }
                 @if (User.Identity?.IsAuthenticated != true || !User.IsInRole("Customer"))
                 {
                     <h3>Admin / Demo</h3>
@@ -398,6 +407,10 @@
                     <button class="tab @(Model.ActiveTab == "orders" ? "active" : "")" onclick="showTab('orders')">My orders</button>
                     <button class="tab @(Model.ActiveTab == "inventory" ? "active" : "")" onclick="showTab('inventory')">Inventory</button>
                     <button class="tab @(Model.ActiveTab == "stock" ? "active" : "")" onclick="showTab('stock')">Stock</button>
+                    @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Manufacturer"))
+                    {
+                        <button class="tab @(Model.ActiveTab == "manufacturer" ? "active" : "")" onclick="showTab('manufacturer')">Manufacturer</button>
+                    }
                 </div>
 
                 <div id="blankets" class="tab-content" style="display: none;"></div>
@@ -569,6 +582,120 @@
                         <div class="alert alert-info">Admin: use <strong>Manufacturer stock</strong> in the sidebar to load data.</div>
                     }
                 </div>
+
+                <div id="manufacturer" class="tab-content @(Model.ActiveTab == "manufacturer" ? "active" : "")" style="@(Model.ActiveTab == "manufacturer" ? "" : "display: none;")">
+                    @if (Model.ManufacturerProducts.Any())
+                    {
+                        <p class="tab-intro">Manage your blanket products: materials, models, production capacity, stock levels, and pictures.</p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Picture</th>
+                                    <th>Model</th>
+                                    <th>Material</th>
+                                    <th>Stock</th>
+                                    <th>Capacity</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var product in Model.ManufacturerProducts)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(product.ImageUrl))
+                                            {
+                                                <img src="@product.ImageUrl" alt="@product.ModelName" style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px;" />
+                                            }
+                                            else
+                                            {
+                                                <span style="font-size: 12px; color: #999;">No image</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <strong>@product.ModelName</strong><br>
+                                            <span style="font-size: 12px; color: #666;">@product.Description</span><br>
+                                            <span style="font-size: 12px; color: #666;">$@product.UnitPrice.ToString("F2")</span>
+                                        </td>
+                                        <td>@product.Material</td>
+                                        <td>
+                                            <strong>@product.StockQuantity</strong> total<br>
+                                            <span style="font-size: 12px; color: #666;">@product.AvailableQuantity available</span><br>
+                                            <span style="font-size: 12px; color: #666;">@product.ReservedQuantity reserved</span>
+                                        </td>
+                                        <td>
+                                            @if (product.CapacityIsActive)
+                                            {
+                                                <strong>@product.DailyCapacity</strong> units/day<br>
+                                                <span style="font-size: 12px; color: #666;">@product.LeadTimeDays day(s) lead time</span>
+                                            }
+                                            else
+                                            {
+                                                <span style="color: #999;">Inactive</span>
+                                            }
+                                        </td>
+                                        <td style="white-space: nowrap;">
+                                            <details style="margin-bottom: 8px;">
+                                                <summary style="cursor: pointer; font-size: 13px; color: #0066cc;">Edit</summary>
+                                                <div style="padding: 12px; background: #f8f9fa; border-radius: 4px; margin-top: 8px; font-size: 13px;">
+                                                    <form method="post" asp-action="UpdateManufacturerBlanket" style="margin-bottom: 12px;">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="id" value="@product.Id" />
+                                                        <strong>Edit Blanket:</strong><br>
+                                                        <input type="text" name="modelName" value="@product.ModelName" placeholder="Model name" style="width: 100%; margin: 4px 0; padding: 4px;" /><br>
+                                                        <input type="text" name="material" value="@product.Material" placeholder="Material" style="width: 100%; margin: 4px 0; padding: 4px;" /><br>
+                                                        <textarea name="description" placeholder="Description" style="width: 100%; margin: 4px 0; padding: 4px; min-height: 60px;">@product.Description</textarea><br>
+                                                        <input type="number" name="unitPrice" value="@product.UnitPrice" step="0.01" min="0" placeholder="Unit price" style="width: 100%; margin: 4px 0; padding: 4px;" /><br>
+                                                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 6px; font-size: 12px;">Update Blanket</button>
+                                                    </form>
+                                                    <form method="post" asp-action="UpdateManufacturerStock" style="margin-bottom: 12px;">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="blanketId" value="@product.Id" />
+                                                        <strong>Set Stock:</strong><br>
+                                                        <input type="number" name="quantity" value="@product.StockQuantity" min="0" placeholder="Quantity" style="width: 100%; margin: 4px 0; padding: 4px;" /><br>
+                                                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 6px; font-size: 12px;">Update Stock</button>
+                                                    </form>
+                                                    <form method="post" asp-action="UpdateManufacturerCapacity" style="margin-bottom: 12px;">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="blanketId" value="@product.Id" />
+                                                        <strong>Set Capacity:</strong><br>
+                                                        <input type="number" name="dailyCapacity" value="@product.DailyCapacity" min="1" placeholder="Daily capacity" style="width: 100%; margin: 4px 0; padding: 4px;" /><br>
+                                                        <input type="number" name="leadTimeDays" value="@product.LeadTimeDays" min="0" placeholder="Lead time (days)" style="width: 100%; margin: 4px 0; padding: 4px;" /><br>
+                                                        <label style="font-size: 12px; margin: 4px 0; display: block;">
+                                                            <input type="checkbox" name="isActive" value="true" @(product.CapacityIsActive ? "checked" : "") style="margin-right: 4px;" />
+                                                            Active
+                                                        </label>
+                                                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 6px; font-size: 12px;">Update Capacity</button>
+                                                    </form>
+                                                    <form method="post" asp-action="SetBlanketImageUrl" style="margin-bottom: 12px;">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="blanketId" value="@product.Id" />
+                                                        <strong>Set Main Image:</strong><br>
+                                                        <input type="text" name="imageUrl" value="@product.ImageUrl" placeholder="Image URL" style="width: 100%; margin: 4px 0; padding: 4px;" /><br>
+                                                        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 6px; font-size: 12px;">Set Image</button>
+                                                    </form>
+                                                    <form method="post" asp-action="AddAdditionalImageUrl">
+                                                        @Html.AntiForgeryToken()
+                                                        <input type="hidden" name="blanketId" value="@product.Id" />
+                                                        <strong>Add Image:</strong><br>
+                                                        <input type="text" name="imageUrl" placeholder="Additional image URL" style="width: 100%; margin: 4px 0; padding: 4px;" /><br>
+                                                        <button type="submit" class="btn btn-success" style="width: 100%; padding: 6px; font-size: 12px;">Add Image</button>
+                                                    </form>
+                                                </div>
+                                            </details>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            Use <strong>My products</strong> in the sidebar to load your manufacturer dashboard.
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     </div>
@@ -626,6 +753,7 @@
                     if (tabName === 'myorders') tabName = 'orders';
                     else if (tabName === 'stockinfo') tabName = 'stock';
                     else if (tabName === 'customerorders') tabName = 'orders';
+                    else if (tabName === 'manufacturer') tabName = 'manufacturer';
                     showTab(tabName);
                 });
             });

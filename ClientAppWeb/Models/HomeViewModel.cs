@@ -17,6 +17,7 @@ public class HomeViewModel
     public CustomerOrderModel? SelectedOrder { get; set; }
     public string ActiveTab { get; set; } = "blankets";
     public bool ShowCheckout { get; set; }
+    public List<ManufacturerProductModel> ManufacturerProducts { get; set; } = new();
 }
 
 public class BlanketModel
@@ -112,4 +113,21 @@ public class OrderItemModel
     public decimal UnitPrice { get; set; }
     public decimal SubTotal { get; set; }
     public string Status { get; set; } = "";
+}
+
+public class ManufacturerProductModel
+{
+    public int Id { get; set; }
+    public string ModelName { get; set; } = "";
+    public string Material { get; set; } = "";
+    public string Description { get; set; } = "";
+    public decimal UnitPrice { get; set; }
+    public string? ImageUrl { get; set; }
+    public List<string> AdditionalImageUrls { get; set; } = new();
+    public int StockQuantity { get; set; }
+    public int ReservedQuantity { get; set; }
+    public int AvailableQuantity { get; set; }
+    public int DailyCapacity { get; set; }
+    public int LeadTimeDays { get; set; }
+    public bool CapacityIsActive { get; set; }
 }

@@ -14,4 +14,11 @@ public interface IBlanketService
     Task<ProductionResponseDto> ProcessProductionRequestAsync(ProductionRequestDto request);
     Task<BlanketDto?> UpdateImageUrlAsync(int id, string? imageUrl);
     Task<BlanketDto?> AddAdditionalImageUrlAsync(int id, string imageUrl);
+    
+    // New methods for manufacturer dashboard
+    Task<BlanketDto> CreateBlanketAsync(CreateBlanketRequest request);
+    Task<BlanketDto?> UpdateBlanketAsync(int id, UpdateBlanketRequest request);
+    Task<ProductionCapacityDto?> GetCapacityByBlanketIdAsync(int id);
+    Task<ProductionCapacityDto?> UpdateCapacityAsync(int blanketId, UpdateProductionCapacityRequest request);
+    Task<StockDto?> SetStockAsync(int blanketId, int quantity);
 }

@@ -8,6 +8,7 @@ namespace ManufacturerService.Repositories;
 public interface IProductionCapacityRepository
 {
     Task<ProductionCapacity?> GetByBlanketIdAsync(int blanketId);
+    Task<ProductionCapacity?> GetByBlanketIdIncludeInactiveAsync(int blanketId);
     Task<IEnumerable<ProductionCapacity>> GetAllAsync();
     Task<ProductionCapacity> AddAsync(ProductionCapacity capacity);
     Task<ProductionCapacity> UpdateAsync(ProductionCapacity capacity);

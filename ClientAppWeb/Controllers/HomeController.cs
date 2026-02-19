@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Json;
 using ClientAppWeb.Models;
 using ClientAppWeb.Data;
+using System.Text.Json.Serialization;
 
 namespace ClientAppWeb.Controllers;
 
@@ -405,6 +406,193 @@ public class HomeController : Controller
     }
 
     [HttpPost]
+    [Authorize(Roles = "Manufacturer")]
+    public async Task<IActionResult> LoadManufacturerDashboard()
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            // Load blankets
+            var blanketsResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets");
+            if (blanketsResponse.IsSuccessStatusCode)
+            {
+                viewModel.Blankets = await blanketsResponse.Content.ReadFromJsonAsync<List<BlanketModel>>() ?? new();
+            }
+
+            // Load manufacturer products with stock and capacity
+            var products = new List<ManufacturerProductModel>();
+            foreach (var blanket in viewModel.Blankets)
+            {
+                var product = new ManufacturerProductModel
+                {
+                    Id = blanket.Id,
+                    ModelName = blanket.ModelName,
+                    Material = blanket.Material,
+                    Description = blanket.Description,
+                    UnitPrice = blanket.UnitPrice,
+                    ImageUrl = blanket.ImageUrl,
+                    AdditionalImageUrls = blanket.AdditionalImageUrls ?? new()
+                };
+
+                // Get stock
+                var stockResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets/stock/{blanket.Id}");
+                if (stockResponse.IsSuccessStatusCode)
+                {
+                    var stock = await stockResponse.Content.ReadFromJsonAsync<StockModel>();
+                    if (stock != null)
+                    {
+                        product.StockQuantity = stock.Quantity;
+                        product.ReservedQuantity = stock.ReservedQuantity;
+                        product.AvailableQuantity = stock.AvailableQuantity;
+                    }
+                }
+
+                // Get capacity
+                var capacityResponse = await httpClient.GetAsync($"{ManufacturerServiceUrl}/api/blankets/{blanket.Id}/capacity");
+                if (capacityResponse.IsSuccessStatusCode)
+                {
+                    var capacityJson = await capacityResponse.Content.ReadAsStringAsync();
+                    if (!string.IsNullOrWhiteSpace(capacityJson))
+                    {
+                        try
+                        {
+                            using var doc = JsonDocument.Parse(capacityJson);
+                            var root = doc.RootElement;
+                            if (root.TryGetProperty("dailyCapacity", out var dc))
+                                product.DailyCapacity = dc.GetInt32();
+                            if (root.TryGetProperty("leadTimeDays", out var ltd))
+                                product.LeadTimeDays = ltd.GetInt32();
+                            if (root.TryGetProperty("isActive", out var ia))
+                                product.CapacityIsActive = ia.GetBoolean();
+                        }
+                        catch { /* ignore parse errors */ }
+                    }
+                }
+
+                products.Add(product);
+            }
+
+            viewModel.ManufacturerProducts = products;
+            viewModel.StatusMessage = $"Loaded {products.Count} product(s)";
+            viewModel.ActiveTab = "manufacturer";
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+        }
+
+        return View("Index", viewModel);
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Manufacturer")]
+    public async Task<IActionResult> UpdateManufacturerBlanket(int id, string? modelName, string? material, string? description, decimal? unitPrice)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var updateRequest = new
+            {
+                modelName = modelName,
+                material = material,
+                description = description,
+                unitPrice = unitPrice
+            };
+
+            var response = await httpClient.PutAsJsonAsync($"{ManufacturerServiceUrl}/api/blankets/{id}", updateRequest);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Blanket updated successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error updating blanket: {response.StatusCode} - {errorBody}";
+            }
+
+            // Reload dashboard
+            return await LoadManufacturerDashboard();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Manufacturer")]
+    public async Task<IActionResult> UpdateManufacturerStock(int blanketId, int quantity)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var stockRequest = new { quantity = quantity };
+            var response = await httpClient.PatchAsJsonAsync($"{ManufacturerServiceUrl}/api/blankets/{blanketId}/stock", stockRequest);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Stock updated successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error updating stock: {response.StatusCode} - {errorBody}";
+            }
+
+            // Reload dashboard
+            return await LoadManufacturerDashboard();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Manufacturer")]
+    public async Task<IActionResult> UpdateManufacturerCapacity(int blanketId, int? dailyCapacity, int? leadTimeDays, bool? isActive)
+    {
+        var httpClient = _httpClientFactory.CreateClient();
+        var viewModel = new HomeViewModel { Cart = GetCart() };
+
+        try
+        {
+            var capacityRequest = new
+            {
+                dailyCapacity = dailyCapacity,
+                leadTimeDays = leadTimeDays,
+                isActive = isActive
+            };
+
+            var response = await httpClient.PatchAsJsonAsync($"{ManufacturerServiceUrl}/api/blankets/{blanketId}/capacity", capacityRequest);
+            if (response.IsSuccessStatusCode)
+            {
+                viewModel.StatusMessage = "Production capacity updated successfully";
+            }
+            else
+            {
+                var errorBody = await response.Content.ReadAsStringAsync();
+                viewModel.StatusMessage = $"Error updating capacity: {response.StatusCode} - {errorBody}";
+            }
+
+            // Reload dashboard
+            return await LoadManufacturerDashboard();
+        }
+        catch (Exception ex)
+        {
+            viewModel.StatusMessage = $"Error: {ex.Message}";
+            return View("Index", viewModel);
+        }
+    }
+
+    [HttpPost]
     public async Task<IActionResult> CheckAvailability(int blanketId)
     {
         var httpClient = _httpClientFactory.CreateClient();
@@ -629,6 +817,11 @@ public class HomeController : Controller
             TempData["StatusMessage"] = "Image URL updated.";
         else
             TempData["StatusMessage"] = "Failed to update image URL.";
+        
+        // If user is Manufacturer, reload dashboard
+        if (User.IsInRole("Manufacturer"))
+            return RedirectToAction(nameof(LoadManufacturerDashboard));
+        
         if (returnToDetail.HasValue)
             return RedirectToAction(nameof(ProductDetail), new { id = returnToDetail.Value });
         return RedirectToAction(nameof(Index));
@@ -673,6 +866,9 @@ public class HomeController : Controller
         if (string.IsNullOrWhiteSpace(imageUrl))
         {
             TempData["StatusMessage"] = "Please enter an image URL.";
+            // If user is Manufacturer, reload dashboard; otherwise go to product detail
+            if (User.IsInRole("Manufacturer"))
+                return RedirectToAction(nameof(LoadManufacturerDashboard));
             return RedirectToAction(nameof(ProductDetail), new { id = blanketId });
         }
         var httpClient = _httpClientFactory.CreateClient();
@@ -681,6 +877,10 @@ public class HomeController : Controller
             TempData["StatusMessage"] = "Image added to gallery.";
         else
             TempData["StatusMessage"] = "Failed to add image.";
+        
+        // If user is Manufacturer, reload dashboard; otherwise go to product detail
+        if (User.IsInRole("Manufacturer"))
+            return RedirectToAction(nameof(LoadManufacturerDashboard));
         return RedirectToAction(nameof(ProductDetail), new { id = blanketId });
     }
 

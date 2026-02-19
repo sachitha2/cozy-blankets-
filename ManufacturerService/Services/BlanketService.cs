@@ -226,6 +226,249 @@ public class BlanketService : IBlanketService
         catch { return new List<string>(); }
     }
 
+    public async Task<BlanketDto> CreateBlanketAsync(CreateBlanketRequest request)
+    {
+        try
+        {
+            // Check if model name already exists
+            var existing = await _blanketRepository.GetByModelNameAsync(request.ModelName);
+            if (existing != null)
+            {
+                throw new InvalidOperationException($"A blanket with model name '{request.ModelName}' already exists.");
+            }
+
+            // Create blanket
+            var blanket = new Blanket
+            {
+                ModelName = request.ModelName,
+                Material = request.Material,
+                Description = request.Description,
+                UnitPrice = request.UnitPrice,
+                ImageUrl = request.ImageUrl,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var createdBlanket = await _blanketRepository.AddAsync(blanket);
+
+            // Create default stock (0 quantity)
+            var stock = new Stock
+            {
+                BlanketId = createdBlanket.Id,
+                Quantity = 0,
+                ReservedQuantity = 0,
+                LastUpdated = DateTime.UtcNow
+            };
+            await _stockRepository.AddAsync(stock);
+
+            // Create default production capacity
+            var capacity = new ProductionCapacity
+            {
+                BlanketId = createdBlanket.Id,
+                DailyCapacity = 10,
+                LeadTimeDays = 1,
+                IsActive = true,
+                LastUpdated = DateTime.UtcNow
+            };
+            await _productionCapacityRepository.AddAsync(capacity);
+
+            _logger.LogInformation("Blanket created successfully with Id: {Id}", createdBlanket.Id);
+            return MapToDto(createdBlanket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error creating blanket");
+            throw;
+        }
+    }
+
+    public async Task<BlanketDto?> UpdateBlanketAsync(int id, UpdateBlanketRequest request)
+    {
+        try
+        {
+            var blanket = await _blanketRepository.GetByIdAsync(id);
+            if (blanket == null)
+                return null;
+
+            // Update only provided fields
+            if (!string.IsNullOrWhiteSpace(request.ModelName))
+            {
+                // Check if new model name conflicts with existing
+                var existing = await _blanketRepository.GetByModelNameAsync(request.ModelName);
+                if (existing != null && existing.Id != id)
+                {
+                    throw new InvalidOperationException($"A blanket with model name '{request.ModelName}' already exists.");
+                }
+                blanket.ModelName = request.ModelName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.Material))
+                blanket.Material = request.Material;
+
+            if (!string.IsNullOrWhiteSpace(request.Description))
+                blanket.Description = request.Description;
+
+            if (request.UnitPrice.HasValue && request.UnitPrice.Value >= 0)
+                blanket.UnitPrice = request.UnitPrice.Value;
+
+            blanket.UpdatedAt = DateTime.UtcNow;
+            await _blanketRepository.UpdateAsync(blanket);
+            return MapToDto(blanket);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating blanket with Id: {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<ProductionCapacityDto?> GetCapacityByBlanketIdAsync(int id)
+    {
+        try
+        {
+            var blanket = await _blanketRepository.GetByIdAsync(id);
+            if (blanket == null)
+            {
+                _logger.LogWarning("Blanket with Id: {Id} not found", id);
+                return null;
+            }
+
+            var capacity = await _productionCapacityRepository.GetByBlanketIdIncludeInactiveAsync(id);
+            if (capacity == null)
+            {
+                _logger.LogWarning("Production capacity not found for BlanketId: {Id}", id);
+                return null;
+            }
+
+            return new ProductionCapacityDto
+            {
+                BlanketId = capacity.BlanketId,
+                ModelName = blanket.ModelName,
+                DailyCapacity = capacity.DailyCapacity,
+                LeadTimeDays = capacity.LeadTimeDays,
+                IsActive = capacity.IsActive,
+                LastUpdated = capacity.LastUpdated
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving capacity for BlanketId: {Id}", id);
+            throw;
+        }
+    }
+
+    public async Task<ProductionCapacityDto?> UpdateCapacityAsync(int blanketId, UpdateProductionCapacityRequest request)
+    {
+        try
+        {
+            var blanket = await _blanketRepository.GetByIdAsync(blanketId);
+            if (blanket == null)
+            {
+                _logger.LogWarning("Blanket with Id: {BlanketId} not found", blanketId);
+                return null;
+            }
+
+            // Get capacity (including inactive)
+            var capacity = await _productionCapacityRepository.GetByBlanketIdIncludeInactiveAsync(blanketId);
+
+            // If no capacity exists, create one
+            if (capacity == null)
+            {
+                capacity = new ProductionCapacity
+                {
+                    BlanketId = blanketId,
+                    DailyCapacity = request.DailyCapacity ?? 10,
+                    LeadTimeDays = request.LeadTimeDays ?? 1,
+                    IsActive = request.IsActive ?? true,
+                    LastUpdated = DateTime.UtcNow
+                };
+                capacity = await _productionCapacityRepository.AddAsync(capacity);
+            }
+            else
+            {
+                // Update only provided fields
+                if (request.DailyCapacity.HasValue && request.DailyCapacity.Value > 0)
+                    capacity.DailyCapacity = request.DailyCapacity.Value;
+
+                if (request.LeadTimeDays.HasValue && request.LeadTimeDays.Value >= 0)
+                    capacity.LeadTimeDays = request.LeadTimeDays.Value;
+
+                if (request.IsActive.HasValue)
+                    capacity.IsActive = request.IsActive.Value;
+
+                capacity = await _productionCapacityRepository.UpdateAsync(capacity);
+            }
+
+            return new ProductionCapacityDto
+            {
+                BlanketId = capacity.BlanketId,
+                ModelName = blanket.ModelName,
+                DailyCapacity = capacity.DailyCapacity,
+                LeadTimeDays = capacity.LeadTimeDays,
+                IsActive = capacity.IsActive,
+                LastUpdated = capacity.LastUpdated
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error updating capacity for BlanketId: {BlanketId}", blanketId);
+            throw;
+        }
+    }
+
+    public async Task<StockDto?> SetStockAsync(int blanketId, int quantity)
+    {
+        try
+        {
+            if (quantity < 0)
+            {
+                throw new ArgumentException("Stock quantity cannot be negative", nameof(quantity));
+            }
+
+            var blanket = await _blanketRepository.GetByIdAsync(blanketId);
+            if (blanket == null)
+            {
+                _logger.LogWarning("Blanket with Id: {BlanketId} not found", blanketId);
+                return null;
+            }
+
+            var stock = await _stockRepository.GetByBlanketIdAsync(blanketId);
+            if (stock == null)
+            {
+                // Create new stock entry
+                stock = new Stock
+                {
+                    BlanketId = blanketId,
+                    Quantity = quantity,
+                    ReservedQuantity = 0,
+                    LastUpdated = DateTime.UtcNow
+                };
+                stock = await _stockRepository.AddAsync(stock);
+            }
+            else
+            {
+                // Update existing stock
+                stock.Quantity = quantity;
+                stock.LastUpdated = DateTime.UtcNow;
+                stock = await _stockRepository.UpdateAsync(stock);
+            }
+
+            return new StockDto
+            {
+                BlanketId = stock.BlanketId,
+                ModelName = blanket.ModelName,
+                Quantity = stock.Quantity,
+                ReservedQuantity = stock.ReservedQuantity,
+                AvailableQuantity = stock.AvailableQuantity,
+                LastUpdated = stock.LastUpdated
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error setting stock for BlanketId: {BlanketId}", blanketId);
+            throw;
+        }
+    }
+
     private static BlanketDto MapToDto(Blanket blanket)
     {
         return new BlanketDto

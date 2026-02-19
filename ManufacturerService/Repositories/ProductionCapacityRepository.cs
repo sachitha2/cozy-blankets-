@@ -33,6 +33,21 @@ public class ProductionCapacityRepository : IProductionCapacityRepository
         }
     }
 
+    public async Task<ProductionCapacity?> GetByBlanketIdIncludeInactiveAsync(int blanketId)
+    {
+        try
+        {
+            return await _context.ProductionCapacities
+                .Include(p => p.Blanket)
+                .FirstOrDefaultAsync(p => p.BlanketId == blanketId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving production capacity for BlanketId: {BlanketId}", blanketId);
+            throw;
+        }
+    }
+
     public async Task<IEnumerable<ProductionCapacity>> GetAllAsync()
     {
         try
