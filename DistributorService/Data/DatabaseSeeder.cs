@@ -1,4 +1,5 @@
 using DistributorService.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace DistributorService.Data;
 
@@ -7,10 +8,42 @@ namespace DistributorService.Data;
 /// </summary>
 public static class DatabaseSeeder
 {
+    /// <summary>
+    /// Applies schema updates for existing databases that were created before
+    /// DeliveryType and Order delivery columns were added (avoids "no such column" errors).
+    /// </summary>
+    private static void ApplySchemaUpdatesIfNeeded(DistributorDbContext context)
+    {
+        try
+        {
+            // Create DeliveryTypes table if it does not exist (SQLite)
+            context.Database.ExecuteSqlRaw(@"
+                CREATE TABLE IF NOT EXISTS DeliveryTypes (
+                    Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    Name TEXT NOT NULL,
+                    Description TEXT NOT NULL DEFAULT '',
+                    Cost REAL NOT NULL DEFAULT 0,
+                    EstimatedDays INTEGER NOT NULL DEFAULT 0,
+                    IsActive INTEGER NOT NULL DEFAULT 1
+                );");
+
+            // Add new columns to Orders table if they don't exist (SQLite does not support IF NOT EXISTS for columns)
+            try { context.Database.ExecuteSqlRaw(@"ALTER TABLE Orders ADD COLUMN DeliveryTypeId INTEGER REFERENCES DeliveryTypes(Id);"); } catch { /* column may already exist */ }
+            try { context.Database.ExecuteSqlRaw(@"ALTER TABLE Orders ADD COLUMN DeliveryAddress TEXT;"); } catch { /* column may already exist */ }
+        }
+        catch
+        {
+            // Ignore; Migrate or EnsureCreated may have already applied the schema
+        }
+    }
+
     public static void SeedData(DistributorDbContext context)
     {
         // Ensure database is created
         context.Database.EnsureCreated();
+
+        // Apply schema updates for existing DBs that lack DeliveryType and new Order columns
+        ApplySchemaUpdatesIfNeeded(context);
 
         // Check if data already exists
         if (context.Inventories.Any() && context.DeliveryTypes.Any())
